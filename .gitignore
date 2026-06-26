@@ -1,0 +1,10 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# Local env files
+.env
+.env.local
+
+# Vercel directory
+.vercel
