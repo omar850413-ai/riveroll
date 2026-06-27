@@ -279,6 +279,7 @@ function actualizarEncabezadoDetalleSede() {
 
 function switchSedeView(viewId) {
     try {
+        alert("JS switchSedeView ejecutándose con: " + viewId);
         state.activeSedeSubView = viewId;
         
         const btnMiembros = document.getElementById('subtab-miembros-btn');
