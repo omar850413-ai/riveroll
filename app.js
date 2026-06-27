@@ -1930,62 +1930,69 @@ async function saveTrabajador(e) {
 }
 
 function renderTrabajadoresGrid() {
-    const container = document.getElementById('trabajadores-lista-grid');
-    if (!container) return;
-    container.innerHTML = '';
-    
-    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
-    const esSoccer = Sede ? Sede.rubro === 'soccer' : true;
-    
-    const lista = (state.trabajadores || []).filter(t => t.sedeId === state.activeSedeId);
-    
-    if (lista.length === 0) {
-        container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); padding: 2rem;">No hay trabajadores registrados en este centro.</div>`;
-        return;
+    try {
+        const container = document.getElementById('trabajadores-lista-grid');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+        const esSoccer = Sede ? Sede.rubro === 'soccer' : true;
+        
+        const lista = (state.trabajadores || []).filter(t => t.sedeId === state.activeSedeId);
+        
+        if (lista.length === 0) {
+            container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); padding: 2rem;">No hay trabajadores registrados en este centro.</div>`;
+            return;
+        }
+        
+        lista.forEach(tr => {
+            const placeholderImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231f2937'/><path d='M50 50a15 15 0 1 0 0-30 15 15 0 0 0 0 30zm0 10c-20 0-30 10-30 20h60c0-10-10-20-30-20z' fill='%234B5563'/></svg>";
+            const fotoSrc = tr.foto || placeholderImg;
+            
+            const card = document.createElement('div');
+            card.className = "glass-panel student-card";
+            card.style.padding = "1.25rem";
+            card.style.display = "flex";
+            card.style.flexDirection = "column";
+            card.style.gap = "1rem";
+            card.style.position = "relative";
+            
+            const emergNombre = (tr.emergencia ? tr.emergencia.nombre : '') || 'No registrado';
+            const emergTel = (tr.emergencia ? tr.emergencia.telefono : '') || '-';
+            
+            card.innerHTML = `
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <img src="${fotoSrc}" style="width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid ${esSoccer ? '#10b981' : '#f59e0b'};">
+                    <div style="flex: 1; overflow: hidden;">
+                        <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.1rem; margin: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${tr.nombre}</h4>
+                        <span style="font-size: 0.8rem; color: var(--color-text-muted); display: block; margin-top: 0.25rem;">
+                            <i class="fa-solid fa-phone"></i> ${tr.telefono}
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div><strong>Dirección:</strong> <span style="color: var(--color-text-muted);">${tr.direccion}</span></div>
+                    ${esSoccer 
+                        ? `<div><strong>Categoría:</strong> <span style="color: #10b981; font-weight: bold;">${tr.categoria || 'Sin especificar'}</span></div>`
+                        : `<div><strong>Horario:</strong> <span style="color: #f59e0b; font-weight: bold;">${tr.horario || 'Sin especificar'}</span></div>`
+                    }
+                    <div style="background: rgba(255,255,255,0.02); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.25rem;">
+                        <span style="font-size: 0.75rem; font-weight: bold; color: var(--color-text-muted); display: block; text-transform: uppercase;">Contacto de Emergencia</span>
+                        <span style="color: #fff; font-weight: 600;">${emergNombre}</span>
+                        <span style="color: var(--color-text-muted); font-size: 0.8rem; display: block; margin-top: 0.15rem;"><i class="fa-solid fa-phone"></i> ${emergTel}</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-danger btn-sm" onclick="eliminarTrabajador('${tr.id}')" style="position: absolute; top: 1rem; right: 1rem; width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    } catch (e) {
+        alert("Error al renderizar trabajadores: " + e.message);
     }
-    
-    lista.forEach(tr => {
-        const placeholderImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231f2937'/><path d='M50 50a15 15 0 1 0 0-30 15 15 0 0 0 0 30zm0 10c-20 0-30 10-30 20h60c0-10-10-20-30-20z' fill='%234B5563'/></svg>";
-        const fotoSrc = tr.foto || placeholderImg;
-        
-        const card = document.createElement('div');
-        card.className = "glass-panel student-card";
-        card.style.padding = "1.25rem";
-        card.style.display = "flex";
-        card.style.flexDirection = "column";
-        card.style.gap = "1rem";
-        card.style.position = "relative";
-        
-        card.innerHTML = `
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <img src="${fotoSrc}" style="width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid ${esSoccer ? '#10b981' : '#f59e0b'};">
-                <div style="flex: 1; overflow: hidden;">
-                    <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.1rem; margin: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${tr.nombre}</h4>
-                    <span style="font-size: 0.8rem; color: var(--color-text-muted); display: block; margin-top: 0.25rem;">
-                        <i class="fa-solid fa-phone"></i> ${tr.telefono}
-                    </span>
-                </div>
-            </div>
-            
-            <div style="font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                <div><strong>Dirección:</strong> <span style="color: var(--color-text-muted);">${tr.direccion}</span></div>
-                ${esSoccer 
-                    ? `<div><strong>Categoría:</strong> <span style="color: #10b981; font-weight: bold;">${tr.categoria || 'Sin especificar'}</span></div>`
-                    : `<div><strong>Horario:</strong> <span style="color: #f59e0b; font-weight: bold;">${tr.horario || 'Sin especificar'}</span></div>`
-                }
-                <div style="background: rgba(255,255,255,0.02); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.25rem;">
-                    <span style="font-size: 0.75rem; font-weight: bold; color: var(--color-text-muted); display: block; text-transform: uppercase;">Contacto de Emergencia</span>
-                    <span style="color: #fff; font-weight: 600;">${tr.emergencia?.nombre || 'No registrado'}</span>
-                    <span style="color: var(--color-text-muted); font-size: 0.8rem; display: block; margin-top: 0.15rem;"><i class="fa-solid fa-phone"></i> ${tr.emergencia?.telefono || '-'}</span>
-                </div>
-            </div>
-            
-            <button class="btn btn-danger btn-sm" onclick="eliminarTrabajador('${tr.id}')" style="position: absolute; top: 1rem; right: 1rem; width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);">
-                <i class="fa-solid fa-trash-can"></i>
-            </button>
-        `;
-        container.appendChild(card);
-    });
 }
 
 async function eliminarTrabajador(id) {
