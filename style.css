@@ -587,3 +587,275 @@ body {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* ================= NUEVOS ESTILOS V3.5 ================= */
+
+/* Botones de Pestañas Celestes más Grandes y Modernos */
+.sub-tabs-container {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.sub-tab-btn {
+    flex: 1;
+    padding: 1.2rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    font-family: var(--font-title);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 2px solid rgba(56, 189, 248, 0.2);
+    background: rgba(56, 189, 248, 0.05);
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.sub-tab-btn:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+    transform: translateY(-2px);
+}
+
+.sub-tab-btn.active {
+    background: #0ea5e9 !important;
+    color: #030712 !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 25px rgba(14, 165, 233, 0.4);
+}
+
+/* Alineación Tipo Lista de Integrantes (Principal) */
+.alignment-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.alignment-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.alignment-row:hover {
+    border-color: var(--border-color-glow);
+    background: rgba(13, 20, 37, 0.95);
+}
+
+.alignment-header-click {
+    padding: 1.1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.alignment-header-click h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    font-family: var(--font-main);
+}
+
+.alignment-arrow-icon {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    transition: transform 0.3s ease;
+}
+
+.alignment-row.open .alignment-arrow-icon {
+    transform: rotate(180deg);
+    color: #38bdf8;
+}
+
+/* Detalles Desplegables del Integrante */
+.alignment-body-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid transparent;
+}
+
+.alignment-row.open .alignment-body-details {
+    max-height: 1000px;
+    border-color: rgba(255, 255, 255, 0.03);
+    transition: max-height 0.6s cubic-bezier(1, 0, 1, 0);
+}
+
+.alignment-body-content {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.small-avatar-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.small-avatar-placeholder {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 2px dashed rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--color-text-muted);
+}
+
+.details-grid-text {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    flex: 1;
+}
+
+.details-grid-text p {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.details-grid-text strong {
+    color: #fff;
+}
+
+/* ================= DISEÑO DEL TICKET DE PAGO ================= */
+.ticket-wrapper-preview {
+    display: flex;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+.ticket-card {
+    width: 100%;
+    max-width: 380px;
+    background: #ffffff;
+    color: #111827;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    font-family: 'Courier New', Courier, monospace;
+    border: 2px dashed #d1d5db;
+    position: relative;
+}
+
+.ticket-card::before, .ticket-card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background-size: 12px 6px;
+}
+
+.ticket-header {
+    text-align: center;
+    border-bottom: 1px dashed #9ca3af;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ticket-logo-small {
+    width: 50px;
+    height: auto;
+    border-radius: 50%;
+    margin-bottom: 0.5rem;
+}
+
+.ticket-title-academia {
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+}
+
+.ticket-body-info {
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.ticket-row-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+}
+
+.ticket-footer-text {
+    text-align: center;
+    border-top: 1px dashed #9ca3af;
+    padding-top: 1rem;
+    margin-top: 1.25rem;
+    font-size: 0.8rem;
+    font-style: italic;
+    font-weight: bold;
+}
+
+/* ================= DISEÑO DE IMPRESIÓN PDF / IMPRIMIR ================= */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #modal-reporte-print, #modal-reporte-print * {
+        visibility: visible;
+    }
+    #modal-reporte-print {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        background: #fff !important;
+        color: #000 !important;
+    }
+    .modal-overlay {
+        background: none !important;
+        position: absolute !important;
+    }
+    .modal-container {
+        box-shadow: none !important;
+        border: none !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .modal-header, .btn, .modal-close {
+        display: none !important;
+    }
+    .accounting-table {
+        color: #000 !important;
+    }
+    .accounting-table th {
+        color: #000 !important;
+        border-bottom: 2px solid #000 !important;
+    }
+    .accounting-table td {
+        color: #000 !important;
+        border-bottom: 1px solid #ddd !important;
+    }
+    .planilla-payment-btn {
+        border: 1px solid #000 !important;
+        background: none !important;
+        color: #000 !important;
+    }
+}
+

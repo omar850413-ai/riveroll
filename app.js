@@ -212,7 +212,7 @@ function switchSedeView(viewId) {
     }
 }
 
-// --- RENDER DE MIEMBROS DE LA SEDE ACTIVA ---
+// --- RENDER DE MIEMBROS DE LA SEDE ACTIVA (ALINEACIÓN EN LISTA COLAPSABLE) ---
 function renderAlumnosDrilldown() {
     const container = document.getElementById('miembros-lista-drilldown');
     if (!container) return;
@@ -222,105 +222,77 @@ function renderAlumnosDrilldown() {
     if (!sede) return;
     
     const esSoccer = sede.rubro === 'soccer';
-    
-    // Filtrar miembros vinculados a la sede activa
     const miembrosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
     
     if (miembrosSede.length === 0) {
-        container.innerHTML = `<div class="glass-panel" style="text-align: center; color: var(--color-text-muted); width: 100%;">No hay miembros registrados en este centro aún. Haz clic en el botón superior para agregar.</div>`;
+        container.innerHTML = `<div class="glass-panel" style="text-align: center; color: var(--color-text-muted); width: 100%;">No hay integrantes registrados en este centro aún. Haz clic en el botón superior para agregar.</div>`;
         return;
     }
     
-    if (esSoccer) {
-        // --- GRUPOS POR AÑO DE NACIMIENTO (FÚTBOL) ---
-        const categoriasMap = {};
-        miembrosSede.forEach(alumno => {
-            if (!categoriasMap[alumno.categoria]) {
-                categoriasMap[alumno.categoria] = [];
-            }
-            categoriasMap[alumno.categoria].push(alumno);
-        });
+    // Contenedor principal de la alineación
+    const listWrapper = document.createElement('div');
+    listWrapper.className = 'alignment-list-container';
+    container.appendChild(listWrapper);
+    
+    miembrosSede.forEach((miembro, index) => {
+        const row = document.createElement('div');
+        row.className = 'alignment-row';
+        row.id = `roster-row-${miembro.id}`;
         
-        const categoriasOrdenadas = Object.keys(categoriasMap).sort((a, b) => b - a);
-        
-        categoriasOrdenadas.forEach(cat => {
-            const section = document.createElement('div');
-            section.className = 'category-section';
+        const avatarHtml = miembro.foto 
+            ? `<img src="${miembro.foto}" class="small-avatar-circle">`
+            : `<div class="small-avatar-placeholder"><i class="fa-solid ${esSoccer ? 'fa-user' : 'fa-dumbbell'}"></i></div>`;
             
-            section.innerHTML = `
-                <div class="category-header">
-                    <div class="category-title">
-                        <i class="fa-solid fa-futbol"></i> Categoría ${cat}
-                        <span class="category-badge">${categoriasMap[cat].length} Alumno(s)</span>
+        row.innerHTML = `
+            <div class="alignment-header-click" onclick="toggleRosterRow('${miembro.id}')">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span style="font-weight: bold; color: var(--color-accent); font-family: monospace; font-size: 1.1rem;">${(index + 1).toString().padStart(2, '0')}</span>
+                    <h3>${miembro.nombre}</h3>
+                    ${esSoccer ? `<span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: bold;">Cat. ${miembro.categoria}</span>` : ''}
+                </div>
+                <i class="fa-solid fa-chevron-down alignment-arrow-icon"></i>
+            </div>
+            
+            <div class="alignment-body-details">
+                <div class="alignment-body-content">
+                    ${avatarHtml}
+                    <div class="details-grid-text">
+                        <p><strong>Fecha de Nacimiento:</strong> ${miembro.fechaNacimiento ? formatearFechaSencilla(miembro.fechaNacimiento) : 'No registrada'}</p>
+                        <p><strong>Teléfono:</strong> <a href="https://wa.me/${miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : '52' + miembro.tutorTelefono}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.tutorTelefono}</a></p>
+                        <p><strong>${esSoccer ? 'Tutor/Responsable' : 'Contacto de Emergencia'}:</strong> ${miembro.tutorNombre || '-'}</p>
+                        ${esSoccer ? `<p><strong>Rama:</strong> ${miembro.rama || 'Mixto'}</p>` : ''}
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; align-self: center;">
+                        <button class="btn btn-outline btn-sm" onclick="openEditAlumnoModal('${miembro.id}')" style="padding: 0.5rem 1rem; border-color: #38bdf8; color: #38bdf8;">
+                            <i class="fa-solid fa-pen-to-square"></i> Editar
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarMiembro('${miembro.id}')" style="background: rgba(239, 68, 68, 0.15); color: var(--color-danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.5rem;">
+                            <i class="fa-solid fa-trash-can"></i> Eliminar
+                        </button>
                     </div>
                 </div>
-                <div class="students-grid" id="grid-cat-${cat}"></div>
-            `;
-            container.appendChild(section);
-            
-            const grid = document.getElementById(`grid-cat-${cat}`);
-            categoriasMap[cat].forEach(alumno => {
-                const card = createMiembroCard(alumno, true);
-                grid.appendChild(card);
-            });
-        });
-    } else {
-        // --- LISTADO DIRECTO (GIMNASIO) ---
-        const section = document.createElement('div');
-        section.className = 'category-section';
-        section.innerHTML = `
-            <div class="category-header">
-                <div class="category-title" style="color: var(--color-gym);">
-                    <i class="fa-solid fa-dumbbell"></i> Suscriptores Activos
-                </div>
             </div>
-            <div class="students-grid" id="grid-gym-drilldown"></div>
         `;
-        container.appendChild(section);
-        
-        const grid = document.getElementById('grid-gym-drilldown');
-        miembrosSede.forEach(suscriptor => {
-            const card = createMiembroCard(suscriptor, false);
-            grid.appendChild(card);
-        });
+        listWrapper.appendChild(row);
+    });
+}
+
+function toggleRosterRow(miembroId) {
+    const row = document.getElementById(`roster-row-${miembroId}`);
+    if (!row) return;
+    
+    const isOpen = row.classList.contains('open');
+    
+    // Cerrar todas las demás filas primero para efecto acordeón limpio
+    document.querySelectorAll('.alignment-row').forEach(r => r.classList.remove('open'));
+    
+    if (!isOpen) {
+        row.classList.add('open');
     }
 }
 
-// Generador de Tarjeta de Miembro en la Vista de Detalle Sede
-function createMiembroCard(miembro, esSoccer) {
-    const card = document.createElement('div');
-    card.className = `student-card ${esSoccer ? 'border-soccer' : 'border-gym'}`;
-    
-    const avatarHtml = miembro.foto 
-        ? `<img src="${miembro.foto}" alt="${miembro.nombre}" class="student-avatar">`
-        : `<div class="student-avatar-placeholder"><i class="fa-solid ${esSoccer ? 'fa-user' : 'fa-dumbbell'}"></i></div>`;
-        
-    card.innerHTML = `
-        <div>
-            <div class="student-info-main">
-                ${avatarHtml}
-                <div class="student-details-txt">
-                    <h3>${miembro.nombre}</h3>
-                    <p><i class="fa-solid fa-phone"></i> Tel: ${miembro.tutorTelefono}</p>
-                    <p><i class="fa-solid fa-user-shield"></i> ${esSoccer ? 'Tutor' : 'Contacto'}: ${miembro.tutorNombre}</p>
-                    <span>${esSoccer ? `Rama: ${miembro.rama || 'Mixto'} | Categoria: ${miembro.categoria}` : `Perfil: Suscriptor`}</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="student-card-actions">
-            <button class="btn btn-outline btn-sm" onclick="openEditAlumnoModal('${miembro.id}')" style="flex: 1;">
-                <i class="fa-solid fa-pen-to-square"></i> Editar
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="eliminarMiembro('${miembro.id}')" style="background: rgba(239, 68, 68, 0.15); color: var(--color-danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.4rem; border-radius: 8px;">
-                <i class="fa-solid fa-trash-can"></i>
-            </button>
-        </div>
-    `;
-    return card;
-}
-
-// --- PLANILLA DE COBROS Y CONTABILIDAD (3 ESTADOS CON ABONO MORADO) ---
+// --- PLANILLA DE COBROS Y CONTABILIDAD ---
 function renderPlanillaCobrosSede() {
     const tbody = document.getElementById('planilla-sede-tbody');
     if (!tbody) return;
@@ -355,17 +327,26 @@ function renderPlanillaCobrosSede() {
                 </div>
             </td>
             <td>
-                <button class="planilla-payment-btn ${pagoInsc.status}" onclick="togglePagoTresEstados('${miembro.id}', 'inscripcion')">
+                <button class="planilla-payment-btn ${pagoInsc.status}" 
+                        onclick="handlePaymentSingleClick('${miembro.id}', 'inscripcion')" 
+                        ondblclick="handlePaymentDoubleClick('${miembro.id}', 'inscripcion')" 
+                        title="Un clic: Pagar/Adeudar | Doble clic: Abonar">
                     ${pagoInsc.texto}
                 </button>
             </td>
             <td>
-                <button class="planilla-payment-btn ${pagoMayo.status}" onclick="togglePagoTresEstados('${miembro.id}', '2026-05')">
+                <button class="planilla-payment-btn ${pagoMayo.status}" 
+                        onclick="handlePaymentSingleClick('${miembro.id}', '2026-05')" 
+                        ondblclick="handlePaymentDoubleClick('${miembro.id}', '2026-05')" 
+                        title="Un clic: Pagar/Adeudar | Doble clic: Abonar">
                     ${pagoMayo.texto}
                 </button>
             </td>
             <td>
-                <button class="planilla-payment-btn ${pagoJunio.status}" onclick="togglePagoTresEstados('${miembro.id}', '2026-06')">
+                <button class="planilla-payment-btn ${pagoJunio.status}" 
+                        onclick="handlePaymentSingleClick('${miembro.id}', '2026-06')" 
+                        ondblclick="handlePaymentDoubleClick('${miembro.id}', '2026-06')" 
+                        title="Un clic: Pagar/Adeudar | Doble clic: Abonar">
                     ${pagoJunio.texto}
                 </button>
             </td>
@@ -382,86 +363,90 @@ function renderPlanillaCobrosSede() {
 
 // Convertidor para estructurar el objeto de pago y su texto dinámico
 function obtenerEstatusPagoObjeto(pagoCampo) {
-    // Si viene en formato antiguo de texto directo
     if (typeof pagoCampo === 'string') {
         if (pagoCampo === 'pagado') return { status: 'pagado', texto: 'pagado' };
         if (pagoCampo === 'adeudo') return { status: 'no-pagado', texto: 'adeudar' };
         return { status: 'no-pagado', texto: 'no pagado' };
     }
-    // Formato estructurado nuevo v3.0
     if (pagoCampo && typeof pagoCampo === 'object') {
         if (pagoCampo.status === 'pagado') return { status: 'pagado', texto: 'pagado' };
         if (pagoCampo.status === 'abonado') return { status: 'abonado', texto: `Abono $${pagoCampo.abono}` };
         return { status: 'no-pagado', texto: 'no pagado' };
     }
-    
-    // Por defecto es No Pagado
     return { status: 'no-pagado', texto: 'no pagado' };
 }
 
-// --- CICLO DE COBRO DE TRES ESTADOS ---
-async function togglePagoTresEstados(miembroId, campo) {
-    const miembro = state.alumnos.find(a => a.id === miembroId);
-    if (!miembro) return;
+// Variables para prevenir conflicto entre un clic y doble clic
+let clickTimer = null;
+
+// --- CLIC SENCILLO: PASA A VERDE (PAGADO) O ROJO (PENDIENTE) ---
+function handlePaymentSingleClick(miembroId, campo) {
+    if (clickTimer) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        return; // Detener flujo para dejar que actúe el Double Click
+    }
     
-    const Sede = state.sedes.find(s => s.id === miembro.sedeId);
-    if (!Sede) return;
-    
-    // Obtener costo de referencia
-    const costoSede = campo === 'inscripcion' ? Sede.inscripcion : Sede.mensualidad;
-    
-    let actualObj = null;
-    if (campo === 'inscripcion') {
-        actualObj = miembro.pagos.inscripcion;
-    } else {
-        if (!miembro.pagos.mensualidades[campo]) {
-            miembro.pagos.mensualidades[campo] = { status: 'no-pagado', abono: 0 };
+    clickTimer = setTimeout(async () => {
+        clickTimer = null;
+        
+        const miembro = state.alumnos.find(a => a.id === miembroId);
+        if (!miembro) return;
+        
+        const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+        if (!Sede) return;
+        
+        const costoSede = campo === 'inscripcion' ? Sede.inscripcion : Sede.mensualidad;
+        let actualObj = campo === 'inscripcion' ? miembro.pagos.inscripcion : miembro.pagos.mensualidades[campo];
+        
+        // Normalizar
+        if (typeof actualObj === 'string') {
+            actualObj = { status: actualObj === 'pagado' ? 'pagado' : 'no-pagado', abono: 0 };
         }
-        actualObj = miembro.pagos.mensualidades[campo];
-    }
-    
-    // Normalizar objeto si venía en formato de texto antiguo
-    if (typeof actualObj === 'string') {
-        actualObj = { 
-            status: actualObj === 'pagado' ? 'pagado' : 'no-pagado', 
-            abono: 0 
-        };
-    }
-    if (!actualObj) {
-        actualObj = { status: 'no-pagado', abono: 0 };
-    }
-    
-    // Alternar estados: no-pagado -> pagado -> abonado -> no-pagado
-    if (actualObj.status === 'no-pagado') {
-        // Pasar a Pagado
-        actualObj.status = 'pagado';
-        actualObj.abono = 0;
+        if (!actualObj) actualObj = { status: 'no-pagado', abono: 0 };
         
-        // Registrar ingreso en caja
-        await window.db.agregarTransaccion({
-            id: 't_' + Date.now(),
-            tipo: 'ingreso',
-            categoria: campo === 'inscripcion' ? 'Inscripción' : 'Mensualidad',
-            monto: costoSede,
-            descripcion: `Pago completo ${campo === 'inscripcion' ? 'inscripción' : 'mensualidad ' + obtenerNombreMes(campo)} de ${miembro.nombre} (${Sede.nombre})`,
-            fecha: obtenerFechaActualStr()
-        });
-        
-        guardarPagoModificado(miembroId, campo, actualObj);
-    } else if (actualObj.status === 'pagado') {
-        // Abrir modal de abonos para pasar a Abonado (Morado)
-        state.tempAbonoMiembroId = miembroId;
-        state.tempAbonoCampo = campo;
-        document.getElementById('abono-monto-input').value = '';
-        document.getElementById('modal-abono-monto').classList.add('active');
-    } else {
-        // Abonado -> No Pagado
-        actualObj.status = 'no-pagado';
-        actualObj.abono = 0;
-        guardarPagoModificado(miembroId, campo, actualObj);
-    }
+        if (actualObj.status === 'no-pagado' || actualObj.status === 'abonado') {
+            // Cambiar a Pagado (Verde)
+            actualObj.status = 'pagado';
+            actualObj.abono = 0;
+            
+            // Agregar transacción
+            await window.db.agregarTransaccion({
+                id: 't_' + Date.now(),
+                tipo: 'ingreso',
+                categoria: campo === 'inscripcion' ? 'Inscripción' : 'Mensualidad',
+                monto: costoSede,
+                descripcion: `Pago completo ${campo === 'inscripcion' ? 'inscripción' : 'mensualidad ' + obtenerNombreMes(campo)} de ${miembro.nombre} (${Sede.nombre})`,
+                fecha: obtenerFechaActualStr()
+            });
+            
+            await guardarPagoModificado(miembroId, campo, actualObj);
+            
+            // Mostrar ticket dinámico
+            mostrarTicketPago(miembroId, campo, costoSede);
+        } else {
+            // Si estaba pagado, regresar a No Pagado (Rojo)
+            actualObj.status = 'no-pagado';
+            actualObj.abono = 0;
+            await guardarPagoModificado(miembroId, campo, actualObj);
+        }
+    }, 250); // Pequeño delay de tolerancia para doble clic
 }
 
+// --- DOBLE CLIC: PASA A MORADO (ABONADO) ---
+function handlePaymentDoubleClick(miembroId, campo) {
+    if (clickTimer) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+    }
+    
+    state.tempAbonoMiembroId = miembroId;
+    state.tempAbonoCampo = campo;
+    
+    document.getElementById('abono-monto-input').value = '';
+    document.getElementById('modal-abono-monto').classList.add('active');
+}
+// --- TICKET GENERADOR DE COMPROBANTES DE PAGO Y VISTA PREVIA DE PDF ---
 async function guardarAbonoMonto() {
     const monto = parseFloat(document.getElementById('abono-monto-input').value) || 0;
     if (monto <= 0) {
@@ -490,11 +475,11 @@ async function guardarAbonoMonto() {
             fecha: obtenerFechaActualStr()
         });
         
-        guardarPagoModificado(miembroId, campo, pagoObj);
+        await guardarPagoModificado(miembroId, campo, pagoObj);
+        mostrarTicketPago(miembroId, campo, costoSede);
     } else {
         const pagoObj = { status: 'abonado', abono: monto };
         
-        // Registrar el abono parcial en caja
         await window.db.agregarTransaccion({
             id: 't_' + Date.now(),
             tipo: 'ingreso',
@@ -504,7 +489,8 @@ async function guardarAbonoMonto() {
             fecha: obtenerFechaActualStr()
         });
         
-        guardarPagoModificado(miembroId, campo, pagoObj);
+        await guardarPagoModificado(miembroId, campo, pagoObj);
+        mostrarTicketPago(miembroId, campo, monto);
     }
     
     closeModal('modal-abono-monto');
@@ -1092,4 +1078,88 @@ function obtenerFechaActualStr() {
     if (mes < 10) mes = '0' + mes;
     if (dia < 10) dia = '0' + dia;
     return `${anio}-${mes}-${dia}`;
+}
+
+// --- LOGICA DE TICKET DIGITAL Y REPORTE DE IMPRESIÓN (PDF) ---
+function mostrarTicketPago(miembroId, campo, monto) {
+    const miembro = state.alumnos.find(a => a.id === miembroId);
+    if (!miembro) return;
+    
+    const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+    if (!Sede) return;
+    
+    // Rellenar datos en el Modal del Ticket
+    document.getElementById('ticket-sede-nombre').innerText = Sede.nombre;
+    document.getElementById('ticket-alumno-nombre').innerText = miembro.nombre;
+    document.getElementById('ticket-fecha').innerText = formatearFechaSencilla(obtenerFechaActualStr());
+    document.getElementById('ticket-concepto').innerText = campo === 'inscripcion' ? 'Cuota de Inscripción' : `Mensualidad de ${obtenerNombreMes(campo)}`;
+    document.getElementById('ticket-monto').innerText = `$${monto}`;
+    
+    // Cargar Logo de la Sede si existe, o usar el oficial por defecto
+    const logoImg = document.getElementById('ticket-sede-logo');
+    logoImg.src = Sede.logo || "logo.jpg";
+    
+    document.getElementById('modal-ticket-pago').classList.add('active');
+}
+
+function imprimirTicketDigital() {
+    // Abrir el cuadro de impresión nativo del navegador enfocándose en el ticket
+    window.print();
+}
+
+function abrirVistaPreviaReporte() {
+    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (!Sede) return;
+    
+    const miembrosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
+    
+    // Rellenar encabezados
+    document.getElementById('reporte-sede-nombre').innerText = Sede.nombre;
+    document.getElementById('reporte-sede-rubro-pago').innerText = `Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : Sede.rubro === 'gym' ? 'Gimnasio' : Sede.rubro} | Rango de Pago: ${Sede.fechaCorte || '1 al 5 de cada mes'}`;
+    document.getElementById('reporte-fecha-actual').innerText = formatearFechaSencilla(obtenerFechaActualStr());
+    
+    const logoImg = document.getElementById('reporte-sede-logo');
+    logoImg.src = Sede.logo || "logo.jpg";
+    
+    const tbody = document.getElementById('reporte-print-tbody');
+    tbody.innerHTML = '';
+    
+    if (miembrosSede.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 1rem;">No hay integrantes registrados.</td></tr>`;
+    } else {
+        miembrosSede.forEach(miembro => {
+            const tr = document.createElement('tr');
+            
+            const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
+            const pMayo = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-05']);
+            const pJunio = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-06']);
+            
+            tr.innerHTML = `
+                <td style="padding: 0.75rem; font-weight: bold; border-bottom: 1px solid #eee;">
+                    ${miembro.nombre}
+                    ${Sede.rubro === 'soccer' ? `<small style="display:block; color: #555;">Cat: ${miembro.categoria}</small>` : ''}
+                </td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pInsc.status === 'pagado' ? '#10b981' : pInsc.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
+                    ${pInsc.texto}
+                </td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pMayo.status === 'pagado' ? '#10b981' : pMayo.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
+                    ${pMayo.texto}
+                </td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pJunio.status === 'pagado' ? '#10b981' : pJunio.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
+                    ${pJunio.texto}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    document.getElementById('modal-reporte-print').classList.add('active');
+}
+
+function imprimirDescargarReportePDF() {
+    // Abrir la vista previa y disparar la ventana de impresión/guardar PDF de inmediato
+    abrirVistaPreviaReporte();
+    setTimeout(() => {
+        window.print();
+    }, 300);
 }
