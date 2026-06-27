@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '10.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '10.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '11.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '11.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -278,46 +278,52 @@ function actualizarEncabezadoDetalleSede() {
 }
 
 function switchSedeView(viewId) {
-    state.activeSedeSubView = viewId;
-    
-    const btnMiembros = document.getElementById('subtab-miembros-btn');
-    const btnConta = document.getElementById('subtab-contabilidad-btn');
-    const btnTotales = document.getElementById('subtab-totales-btn');
-    const btnTrabajadores = document.getElementById('subtab-trabajadores-btn');
-    
-    const sede = state.sedes.find(s => s.id === state.activeSedeId);
-    const esSoccer = sede ? sede.rubro === 'soccer' : true;
-    
-    // Resetear clases
-    btnMiembros.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
-    btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
-    btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
-    if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
-    
-    // Ocultar todos los subpaneles
-    document.getElementById('sub-panel-miembros').style.display = 'none';
-    document.getElementById('sub-panel-contabilidad').style.display = 'none';
-    document.getElementById('sub-panel-totales').style.display = 'none';
-    const panelTrabajadores = document.getElementById('sub-panel-trabajadores');
-    if (panelTrabajadores) panelTrabajadores.style.display = 'none';
-    
-    if (viewId === 'miembros') {
-        btnMiembros.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
-        document.getElementById('sub-panel-miembros').style.display = 'block';
-        renderAlumnosDrilldown();
-    } else if (viewId === 'contabilidad') {
-        btnConta.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
-        document.getElementById('sub-panel-contabilidad').style.display = 'block';
-        renderPlanillaCobrosSede();
-    } else if (viewId === 'totales') {
-        btnTotales.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
-        document.getElementById('sub-panel-totales').style.display = 'block';
-        renderResumenFinanzas();
-        renderEgresosLista();
-    } else if (viewId === 'trabajadores') {
-        if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
-        if (panelTrabajadores) panelTrabajadores.style.display = 'block';
-        renderTrabajadoresGrid();
+    try {
+        state.activeSedeSubView = viewId;
+        
+        const btnMiembros = document.getElementById('subtab-miembros-btn');
+        const btnConta = document.getElementById('subtab-contabilidad-btn');
+        const btnTotales = document.getElementById('subtab-totales-btn');
+        const btnTrabajadores = document.getElementById('subtab-trabajadores-btn');
+        
+        const sede = state.sedes.find(s => s.id === state.activeSedeId);
+        const esSoccer = sede ? sede.rubro === 'soccer' : true;
+        
+        if (btnMiembros) btnMiembros.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        if (btnConta) btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        if (btnTotales) btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        
+        const pMiembros = document.getElementById('sub-panel-miembros');
+        const pConta = document.getElementById('sub-panel-contabilidad');
+        const pTotales = document.getElementById('sub-panel-totales');
+        const pTrabajadores = document.getElementById('sub-panel-trabajadores');
+        
+        if (pMiembros) pMiembros.style.display = 'none';
+        if (pConta) pConta.style.display = 'none';
+        if (pTotales) pTotales.style.display = 'none';
+        if (pTrabajadores) pTrabajadores.style.display = 'none';
+        
+        if (viewId === 'miembros') {
+            if (btnMiembros) btnMiembros.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+            if (pMiembros) pMiembros.style.display = 'block';
+            renderAlumnosDrilldown();
+        } else if (viewId === 'contabilidad') {
+            if (btnConta) btnConta.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+            if (pConta) pConta.style.display = 'block';
+            renderPlanillaCobrosSede();
+        } else if (viewId === 'totales') {
+            if (btnTotales) btnTotales.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+            if (pTotales) pTotales.style.display = 'block';
+            renderResumenFinanzas();
+            renderEgresosLista();
+        } else if (viewId === 'trabajadores') {
+            if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+            if (pTrabajadores) pTrabajadores.style.display = 'block';
+            renderTrabajadoresGrid();
+        }
+    } catch (e) {
+        console.error("Error en switchSedeView:", e);
     }
 }
 
