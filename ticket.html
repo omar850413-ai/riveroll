@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante Oficial de Pago - RIVEROLL</title>
+    
+    <!-- Google Fonts: Outfit & Courier -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #060913;
+            --color-accent: #cda250;
+            --color-success: #10b981;
+            --font-title: 'Outfit', sans-serif;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: var(--bg-main);
+            background-image: radial-gradient(at 50% 0%, rgba(205, 162, 80, 0.05) 0px, transparent 60%);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        
+        .ticket-page-container {
+            width: 100%;
+            max-width: 400px;
+            background: #ffffff;
+            color: #111827;
+            border-radius: 24px;
+            padding: 2.25rem 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            font-family: 'Courier New', Courier, monospace;
+            border: 2px dashed #d1d5db;
+            position: relative;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @define-keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stamp-paid {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            border: 3px double var(--color-success);
+            color: var(--color-success);
+            font-family: var(--font-title);
+            font-weight: 900;
+            font-size: 0.9rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            transform: rotate(8deg);
+            user-select: none;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+        }
+        
+        .ticket-header {
+            text-align: center;
+            border-bottom: 2px dashed #9ca3af;
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .ticket-logo {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--color-accent);
+            box-shadow: 0 5px 15px rgba(205, 162, 80, 0.2);
+            margin-bottom: 0.75rem;
+        }
+        
+        .ticket-title-academia {
+            font-family: var(--font-title);
+            font-weight: 900;
+            font-size: 1.25rem;
+            text-transform: uppercase;
+            color: #111827;
+            letter-spacing: 0.5px;
+            padding: 0 1rem;
+            line-height: 1.2;
+        }
+        
+        .ticket-subtitle {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.35rem;
+            font-weight: bold;
+        }
+        
+        .ticket-body-info {
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+        
+        .ticket-row-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.6rem;
+        }
+        
+        .label-gray {
+            color: #6b7280;
+            font-weight: bold;
+        }
+        
+        .value-dark {
+            color: #111827;
+            font-weight: bold;
+            text-align: right;
+            max-width: 60%;
+            word-wrap: break-word;
+        }
+        
+        .ticket-footer {
+            text-align: center;
+            border-top: 2px dashed #9ca3af;
+            padding-top: 1.25rem;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            font-style: italic;
+            font-weight: bold;
+            color: #374151;
+            line-height: 1.4;
+        }
+        
+        .print-btn-float {
+            margin-top: 1.5rem;
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--color-accent);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-weight: bold;
+            font-family: var(--font-title);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(205, 162, 80, 0.2);
+        }
+        
+        .print-btn-float:hover {
+            background: #b48937;
+            transform: translateY(-2px);
+        }
+        
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .ticket-page-container {
+                box-shadow: none;
+                border: none;
+                max-width: 100%;
+                margin: 0;
+            }
+            .print-btn-float {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div>
+        <div class="ticket-page-container">
+            <div class="stamp-paid" id="ticket-stamp">PAGADO</div>
+            
+            <div class="ticket-header">
+                <img id="ticket-logo" src="logo.jpg" alt="Logo" class="ticket-logo">
+                <div class="ticket-title-academia" id="ticket-sede-nombre">Academia Riveroll</div>
+                <div class="ticket-subtitle">COMPROBANTE OFICIAL DE PAGO</div>
+            </div>
+            
+            <div class="ticket-body-info">
+                <div class="ticket-row-line">
+                    <span class="label-gray">FECHA:</span>
+                    <span class="value-dark" id="ticket-fecha">-</span>
+                </div>
+                <div class="ticket-row-line">
+                    <span class="label-gray">INTEGRANTE:</span>
+                    <span class="value-dark" id="ticket-alumno-nombre" style="text-transform: uppercase;">-</span>
+                </div>
+                <div class="ticket-row-line">
+                    <span class="label-gray">CONCEPTO:</span>
+                    <span class="value-dark" id="ticket-concepto" style="text-transform: uppercase;">-</span>
+                </div>
+                
+                <div class="ticket-row-line" style="border-top: 1px dotted #9ca3af; padding-top: 0.5rem; margin-top: 0.5rem;">
+                    <span class="label-gray" style="font-weight: bold; color: #111827;">MONTO REGISTRADO:</span>
+                    <span class="value-dark" id="ticket-monto" style="font-size: 1.1rem; color: var(--color-success); font-weight: 900;">$-</span>
+                </div>
+            </div>
+            
+            <div class="ticket-footer">
+                ¡Muchas gracias por su pago y su valiosa confianza en nuestra institución!
+            </div>
+        </div>
+        
+        <button class="print-btn-float" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> Imprimir o Guardar PDF
+        </button>
+    </div>
+
+    <script>
+        // Parsear parámetros de la URL
+        function getParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const sede = getParam('s');
+            const integrante = getParam('i');
+            const concepto = getParam('c');
+            const monto = getParam('m');
+            const fecha = getParam('f');
+            const logo = getParam('l'); // base64 o URL opcional
+            const abono = getParam('a'); // flag de abono
+            
+            if (sede) document.getElementById('ticket-sede-nombre').innerText = decodeURIComponent(sede);
+            if (integrante) document.getElementById('ticket-alumno-nombre').innerText = decodeURIComponent(integrante);
+            if (concepto) document.getElementById('ticket-concepto').innerText = decodeURIComponent(concepto);
+            if (monto) document.getElementById('ticket-monto').innerText = '$' + decodeURIComponent(monto);
+            if (fecha) document.getElementById('ticket-fecha').innerText = decodeURIComponent(fecha);
+            
+            if (logo) {
+                document.getElementById('ticket-logo').src = decodeURIComponent(logo);
+            }
+            
+            if (abono === '1') {
+                const stamp = document.getElementById('ticket-stamp');
+                stamp.innerText = 'ABONADO';
+                stamp.style.color = '#8b5cf6';
+                stamp.style.borderColor = '#8b5cf6';
+            }
+        });
+    </script>
+</body>
+</html>
