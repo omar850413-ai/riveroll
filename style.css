@@ -999,9 +999,3 @@ body {
     width: 100%;
 }
 
-/* El botón Totales toma el 100% de la fila */
-#subtab-totales-btn {
-    flex: 1 1 100%;
-    width: 100%;
-}
-

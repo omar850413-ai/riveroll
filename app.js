@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '7.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '7.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '8.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '8.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -79,6 +79,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (state.activeSedeId) {
                         renderResumenFinanzas();
                         renderEgresosLista();
+                    }
+                });
+
+                window.db.suscribir('trabajadores', (nuevosTrabajadores) => {
+                    state.trabajadores = nuevosTrabajadores;
+                    if (state.activeSedeId) {
+                        renderTrabajadoresGrid();
+                        actualizarSelectoresTrabajadores();
+                    }
+                });
+
+                window.db.suscribir('actividades', (nuevasActividades) => {
+                    state.actividades = nuevasActividades;
+                    if (state.activeSedeId) {
+                        renderActividadesRollTable();
                     }
                 });
                 
@@ -248,6 +263,7 @@ function switchSedeView(viewId) {
     const btnMiembros = document.getElementById('subtab-miembros-btn');
     const btnConta = document.getElementById('subtab-contabilidad-btn');
     const btnTotales = document.getElementById('subtab-totales-btn');
+    const btnTrabajadores = document.getElementById('subtab-trabajadores-btn');
     
     const sede = state.sedes.find(s => s.id === state.activeSedeId);
     const esSoccer = sede ? sede.rubro === 'soccer' : true;
@@ -256,11 +272,14 @@ function switchSedeView(viewId) {
     btnMiembros.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
     btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
     btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+    if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
     
     // Ocultar todos los subpaneles
     document.getElementById('sub-panel-miembros').style.display = 'none';
     document.getElementById('sub-panel-contabilidad').style.display = 'none';
     document.getElementById('sub-panel-totales').style.display = 'none';
+    const panelTrabajadores = document.getElementById('sub-panel-trabajadores');
+    if (panelTrabajadores) panelTrabajadores.style.display = 'none';
     
     if (viewId === 'miembros') {
         btnMiembros.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
@@ -275,6 +294,10 @@ function switchSedeView(viewId) {
         document.getElementById('sub-panel-totales').style.display = 'block';
         renderResumenFinanzas();
         renderEgresosLista();
+    } else if (viewId === 'trabajadores') {
+        if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+        if (panelTrabajadores) panelTrabajadores.style.display = 'block';
+        renderTrabajadoresGrid();
     }
 }
 
@@ -1705,6 +1728,308 @@ async function eliminarEgreso(transaccionId) {
         } catch (error) {
             console.error("Error al eliminar egreso:", error);
             alert("No se pudo eliminar el egreso.");
+        }
+    }
+}
+
+// =========================================================================
+// MÓDULO DE TRABAJADORES Y ROLL DE ACTIVIDADES
+// =========================================================================
+let streamTrabajador = null;
+let fotoTrabajadorBase64 = '';
+
+function openAddTrabajadorModal() {
+    document.getElementById('form-trabajador').reset();
+    document.getElementById('edit-trabajador-id').value = '';
+    fotoTrabajadorBase64 = '';
+    
+    // Configurar campos condicionales
+    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+    const esSoccer = Sede ? Sede.rubro === 'soccer' : true;
+    
+    if (esSoccer) {
+        document.getElementById('group-futbol-trabajador').style.display = 'block';
+        document.getElementById('group-gimnasio-trabajador').style.display = 'none';
+        document.getElementById('trabajador-categoria').required = true;
+        document.getElementById('trabajador-horario').required = false;
+    } else {
+        document.getElementById('group-futbol-trabajador').style.display = 'none';
+        document.getElementById('group-gimnasio-trabajador').style.display = 'block';
+        document.getElementById('trabajador-categoria').required = false;
+        document.getElementById('trabajador-horario').required = true;
+    }
+    
+    // Restablecer preview de imagen
+    document.getElementById('upload-preview-trabajador').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='10' fill='%236B7280'>Vista Previa</text></svg>";
+    
+    apagarCamaraTrabajador();
+    openModal('modal-trabajador');
+}
+
+function previewTrabajadorImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            fotoTrabajadorBase64 = e.target.result;
+            document.getElementById('upload-preview-trabajador').src = fotoTrabajadorBase64;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function encenderCamaraTrabajador() {
+    try {
+        const container = document.getElementById('camara-contenedor-trabajador');
+        const video = document.getElementById('video-stream-trabajador');
+        container.style.display = 'block';
+        
+        streamTrabajador = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+            audio: false
+        });
+        video.srcObject = streamTrabajador;
+    } catch (err) {
+        console.error("Error al encender cámara de trabajador:", err);
+        alert("No se pudo acceder a la cámara.");
+    }
+}
+
+function capturarFotoTrabajador() {
+    const video = document.getElementById('video-stream-trabajador');
+    const canvas = document.getElementById('hidden-canvas-trabajador');
+    if (!streamTrabajador || !video) return;
+    
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    fotoTrabajadorBase64 = canvas.toDataURL('image/jpeg');
+    document.getElementById('upload-preview-trabajador').src = fotoTrabajadorBase64;
+    apagarCamaraTrabajador();
+}
+
+function apagarCamaraTrabajador() {
+    const container = document.getElementById('camara-contenedor-trabajador');
+    const video = document.getElementById('video-stream-trabajador');
+    if (container) container.style.display = 'none';
+    if (streamTrabajador) {
+        streamTrabajador.getTracks().forEach(track => track.stop());
+        streamTrabajador = null;
+    }
+    if (video) video.srcObject = null;
+}
+
+async function saveTrabajador(e) {
+    e.preventDefault();
+    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (!Sede) return;
+    
+    const esSoccer = Sede.rubro === 'soccer';
+    const nombre = document.getElementById('trabajador-nombre').value.trim();
+    const telefono = document.getElementById('trabajador-telefono').value.trim();
+    const direccion = document.getElementById('trabajador-direccion').value.trim();
+    const emergNombre = document.getElementById('trabajador-emergencia-nombre').value.trim();
+    const emergTel = document.getElementById('trabajador-emergencia-telefono').value.trim();
+    
+    const trabajadorData = {
+        nombre,
+        telefono,
+        direccion,
+        emergencia: {
+            nombre: emergNombre,
+            telefono: emergTel
+        },
+        foto: fotoTrabajadorBase64 || '',
+        sedeId: state.activeSedeId
+    };
+    
+    if (esSoccer) {
+        trabajadorData.categoria = document.getElementById('trabajador-categoria').value.trim();
+    } else {
+        trabajadorData.horario = document.getElementById('trabajador-horario').value.trim();
+    }
+    
+    try {
+        await window.db.agregarTrabajador(trabajadorData);
+        closeModal('modal-trabajador');
+        apagarCamaraTrabajador();
+        alert("Trabajador registrado con éxito.");
+    } catch (err) {
+        console.error("Error al registrar trabajador:", err);
+        alert("No se pudo guardar el trabajador.");
+    }
+}
+
+function renderTrabajadoresGrid() {
+    const container = document.getElementById('trabajadores-lista-grid');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+    const esSoccer = Sede ? Sede.rubro === 'soccer' : true;
+    
+    const lista = (state.trabajadores || []).filter(t => t.sedeId === state.activeSedeId);
+    
+    if (lista.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); padding: 2rem;">No hay trabajadores registrados en este centro.</div>`;
+        return;
+    }
+    
+    lista.forEach(tr => {
+        const placeholderImg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231f2937'/><path d='M50 50a15 15 0 1 0 0-30 15 15 0 0 0 0 30zm0 10c-20 0-30 10-30 20h60c0-10-10-20-30-20z' fill='%234B5563'/></svg>";
+        const fotoSrc = tr.foto || placeholderImg;
+        
+        const card = document.createElement('div');
+        card.className = "glass-panel student-card";
+        card.style.padding = "1.25rem";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.gap = "1rem";
+        card.style.position = "relative";
+        
+        card.innerHTML = `
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <img src="${fotoSrc}" style="width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid ${esSoccer ? '#10b981' : '#f59e0b'};">
+                <div style="flex: 1; overflow: hidden;">
+                    <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.1rem; margin: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${tr.nombre}</h4>
+                    <span style="font-size: 0.8rem; color: var(--color-text-muted); display: block; margin-top: 0.25rem;">
+                        <i class="fa-solid fa-phone"></i> ${tr.telefono}
+                    </span>
+                </div>
+            </div>
+            
+            <div style="font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div><strong>Dirección:</strong> <span style="color: var(--color-text-muted);">${tr.direccion}</span></div>
+                ${esSoccer 
+                    ? `<div><strong>Categoría:</strong> <span style="color: #10b981; font-weight: bold;">${tr.categoria || 'Sin especificar'}</span></div>`
+                    : `<div><strong>Horario:</strong> <span style="color: #f59e0b; font-weight: bold;">${tr.horario || 'Sin especificar'}</span></div>`
+                }
+                <div style="background: rgba(255,255,255,0.02); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.25rem;">
+                    <span style="font-size: 0.75rem; font-weight: bold; color: var(--color-text-muted); display: block; text-transform: uppercase;">Contacto de Emergencia</span>
+                    <span style="color: #fff; font-weight: 600;">${tr.emergencia?.nombre || 'No registrado'}</span>
+                    <span style="color: var(--color-text-muted); font-size: 0.8rem; display: block; margin-top: 0.15rem;"><i class="fa-solid fa-phone"></i> ${tr.emergencia?.telefono || '-'}</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-danger btn-sm" onclick="eliminarTrabajador('${tr.id}')" style="position: absolute; top: 1rem; right: 1rem; width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        `;
+        container.appendChild(card);
+    });
+}
+
+async function eliminarTrabajador(id) {
+    if (confirm("¿Estás seguro de que deseas dar de baja a este trabajador?")) {
+        try {
+            await window.db.eliminarTrabajador(id);
+            alert("Trabajador dado de baja.");
+        } catch (err) {
+            console.error("Error al eliminar trabajador:", err);
+        }
+    }
+}
+
+function openActividadesRollModal() {
+    actualizarSelectoresTrabajadores();
+    renderActividadesRollTable();
+    openModal('modal-actividades-roll');
+}
+
+function actualizarSelectoresTrabajadores() {
+    const select = document.getElementById('actividad-trabajador');
+    if (!select) return;
+    select.innerHTML = '';
+    
+    const lista = (state.trabajadores || []).filter(t => t.sedeId === state.activeSedeId);
+    if (lista.length === 0) {
+        select.innerHTML = `<option value="">Agrega primero un trabajador</option>`;
+        return;
+    }
+    
+    lista.forEach(tr => {
+        const option = document.createElement('option');
+        option.value = tr.id;
+        option.innerText = tr.nombre;
+        select.appendChild(option);
+    });
+}
+
+async function registrarActividadRoll(e) {
+    e.preventDefault();
+    const trabajadorId = document.getElementById('actividad-trabajador').value;
+    const actividadNombre = document.getElementById('actividad-nombre').value.trim();
+    const dia = document.getElementById('actividad-dia').value;
+    const hora = document.getElementById('actividad-hora').value;
+    
+    if (!trabajadorId) {
+        alert("Selecciona un trabajador válido.");
+        return;
+    }
+    
+    const trabajador = state.trabajadores.find(t => t.id === trabajadorId);
+    if (!trabajador) return;
+    
+    const nuevaActividad = {
+        trabajadorId: trabajador.id,
+        trabajadorNombre: trabajador.nombre,
+        actividad: actividadNombre,
+        dia: dia,
+        hora: hora,
+        sedeId: state.activeSedeId,
+        fecha: new Date().toISOString()
+    };
+    
+    try {
+        await window.db.agregarActividad(nuevaActividad);
+        document.getElementById('form-actividad-programar').reset();
+        alert("Actividad asignada con éxito al Roll.");
+    } catch (err) {
+        console.error("Error al registrar actividad:", err);
+    }
+}
+
+function renderActividadesRollTable() {
+    const tbody = document.getElementById('actividades-roll-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const lista = (state.actividades || []).filter(a => a.sedeId === state.activeSedeId);
+    
+    if (lista.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--color-text-muted); padding: 1.5rem;">No hay actividades programadas.</td></tr>`;
+        return;
+    }
+    
+    // Ordenar actividades por Día de la semana
+    const ordenDias = { "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6, "Domingo": 7 };
+    lista.sort((a, b) => (ordenDias[a.dia] || 99) - (ordenDias[b.dia] || 99));
+    
+    lista.forEach(act => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="color: #fff; font-weight: 600;">${act.trabajadorNombre}</td>
+            <td style="color: var(--color-text-muted);">${act.actividad}</td>
+            <td style="color: #38bdf8; font-weight: 700;">${act.dia}</td>
+            <td style="color: #fff;">${act.hora} hrs</td>
+            <td style="text-align: center;">
+                <button class="btn btn-danger btn-sm" onclick="eliminarActividadRoll('${act.id}')" style="background: rgba(239, 68, 68, 0.15); color: var(--color-danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.25rem 0.5rem;">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function eliminarActividadRoll(id) {
+    if (confirm("¿Estás seguro de que deseas eliminar esta actividad del roll?")) {
+        try {
+            await window.db.eliminarActividad(id);
+        } catch (err) {
+            console.error("Error al eliminar actividad:", err);
         }
     }
 }

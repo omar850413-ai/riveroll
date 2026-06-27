@@ -8,7 +8,9 @@ const STORAGE_KEYS = {
     SEDES: 'riveroll_sedes_v3',
     ALUMNOS: 'riveroll_alumnos_v3',
     TRANSACCIONES: 'riveroll_transacciones_v3',
-    PARTIDOS: 'riveroll_partidos_v3'
+    PARTIDOS: 'riveroll_partidos_v3',
+    TRABAJADORES: 'riveroll_trabajadores_v3',
+    ACTIVIDADES: 'riveroll_actividades_v3'
 };
 
 // =========================================================================
@@ -31,6 +33,8 @@ const SEMILLA_SEDES = [];
 const SEMILLA_ALUMNOS = [];
 const SEMILLA_TRANSACCIONES = [];
 const SEMILLA_PARTIDOS = [];
+const SEMILLA_TRABAJADORES = [];
+const SEMILLA_ACTIVIDADES = [];
 
 let firebaseApp = null;
 let firestoreDb = null;
@@ -42,7 +46,9 @@ const listeners = {
     sedes: [],
     alumnos: [],
     transacciones: [],
-    partidos: []
+    partidos: [],
+    trabajadores: [],
+    actividades: []
 };
 
 function notificarCambio(coleccion, datos) {
@@ -102,7 +108,7 @@ const dbAdapter = {
             const esSuperAdmin = dbCurrentUser && dbCurrentUser.email === 'omar850413@gmail.com';
             if (dbCurrentUser && !esSuperAdmin) {
                 // Filtrar sedes creadas por el usuario
-                if (coleccion === 'sedes' || coleccion === 'transacciones' || coleccion === 'partidos' || coleccion === 'alumnos') {
+                if (coleccion === 'sedes' || coleccion === 'transacciones' || coleccion === 'partidos' || coleccion === 'alumnos' || coleccion === 'trabajadores' || coleccion === 'actividades') {
                     queryRef = queryRef.where('userId', '==', dbCurrentUser.uid);
                 }
             }
@@ -113,7 +119,7 @@ const dbAdapter = {
                     datos.push({ id: doc.id, ...doc.data() });
                 });
                 
-                if (coleccion === 'transacciones' || coleccion === 'partidos') {
+                if (coleccion === 'transacciones' || coleccion === 'partidos' || coleccion === 'actividades') {
                     datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
                 }
                 callback(datos);
@@ -137,6 +143,10 @@ const dbAdapter = {
                 datosLocal = this.getTransaccionesLocal().filter(userFilter);
             } else if (coleccion === 'partidos') {
                 datosLocal = this.getPartidosLocal().filter(userFilter);
+            } else if (coleccion === 'trabajadores') {
+                datosLocal = this.getTrabajadoresLocal().filter(userFilter);
+            } else if (coleccion === 'actividades') {
+                datosLocal = this.getActividadesLocal().filter(userFilter);
             }
             callback(datosLocal);
         }
@@ -181,6 +191,20 @@ const dbAdapter = {
         return JSON.parse(data);
     },
     savePartidosLocal(data) { localStorage.setItem(STORAGE_KEYS.PARTIDOS, JSON.stringify(data)); },
+
+    getTrabajadoresLocal() {
+        const data = localStorage.getItem(STORAGE_KEYS.TRABAJADORES);
+        if (!data) { this.saveTrabajadoresLocal(SEMILLA_TRABAJADORES); return SEMILLA_TRABAJADORES; }
+        return JSON.parse(data);
+    },
+    saveTrabajadoresLocal(data) { localStorage.setItem(STORAGE_KEYS.TRABAJADORES, JSON.stringify(data)); },
+
+    getActividadesLocal() {
+        const data = localStorage.getItem(STORAGE_KEYS.ACTIVIDADES);
+        if (!data) { this.saveActividadesLocal(SEMILLA_ACTIVIDADES); return SEMILLA_ACTIVIDADES; }
+        return JSON.parse(data);
+    },
+    saveActividadesLocal(data) { localStorage.setItem(STORAGE_KEYS.ACTIVIDADES, JSON.stringify(data)); },
 
     // --- OPERACIONES DE ESCRITURA ---
 
@@ -390,6 +414,68 @@ const dbAdapter = {
                 return partidos[index];
             }
             return null;
+        }
+    },
+
+    // 5. TRABAJADORES
+    async agregarTrabajador(trabajador) {
+        if (dbCurrentUser) {
+            trabajador.userId = dbCurrentUser.uid;
+        }
+        if (useFirebase && firestoreDb) {
+            const temp = { ...trabajador };
+            delete temp.id;
+            const docRef = await firestoreDb.collection('trabajadores').add(temp);
+            return { id: docRef.id, ...trabajador };
+        } else {
+            const trabajadores = this.getTrabajadoresLocal();
+            trabajador.id = 'tr_' + Date.now();
+            trabajadores.push(trabajador);
+            this.saveTrabajadoresLocal(trabajadores);
+            notificarCambio('trabajadores', trabajadores);
+            return trabajador;
+        }
+    },
+
+    async eliminarTrabajador(id) {
+        if (useFirebase && firestoreDb) {
+            await firestoreDb.collection('trabajadores').doc(id).delete();
+        } else {
+            let trabajadores = this.getTrabajadoresLocal();
+            trabajadores = trabajadores.filter(t => t.id !== id);
+            this.saveTrabajadoresLocal(trabajadores);
+            notificarCambio('trabajadores', trabajadores);
+        }
+    },
+
+    // 6. ACTIVIDADES (ROLL)
+    async agregarActividad(actividad) {
+        if (dbCurrentUser) {
+            actividad.userId = dbCurrentUser.uid;
+        }
+        if (useFirebase && firestoreDb) {
+            const temp = { ...actividad };
+            delete temp.id;
+            const docRef = await firestoreDb.collection('actividades').add(temp);
+            return { id: docRef.id, ...actividad };
+        } else {
+            const actividades = this.getActividadesLocal();
+            actividad.id = 'ac_' + Date.now();
+            actividades.push(actividad);
+            this.saveActividadesLocal(actividades);
+            notificarCambio('actividades', actividades);
+            return actividad;
+        }
+    },
+
+    async eliminarActividad(id) {
+        if (useFirebase && firestoreDb) {
+            await firestoreDb.collection('actividades').doc(id).delete();
+        } else {
+            let actividades = this.getActividadesLocal();
+            actividades = actividades.filter(a => a.id !== id);
+            this.saveActividadesLocal(actividades);
+            notificarCambio('actividades', actividades);
         }
     }
 };

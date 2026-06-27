@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v7') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v7', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v8') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v8', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -193,6 +193,9 @@
                     <button id="subtab-totales-btn" class="sub-tab-btn soccer" onclick="switchSedeView('totales')">
                         <i class="fa-solid fa-wallet"></i> Totales
                     </button>
+                    <button id="subtab-trabajadores-btn" class="sub-tab-btn soccer" onclick="switchSedeView('trabajadores')">
+                        <i class="fa-solid fa-users-gear"></i> Trabajadores
+                    </button>
                 </div>
                 
                 <!-- Sub-Panel: Miembros Registrados -->
@@ -310,6 +313,28 @@
                                     </tbody>
                                 </table>
                             </div>
+                    </div>
+                </div>
+
+                <!-- Sub-Panel: Trabajadores (Pestaña 4) -->
+                <div id="sub-panel-trabajadores" class="sede-sub-view" style="display: none;">
+                    <div class="glass-panel" style="margin-bottom: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;"><i class="fa-solid fa-users-gear"></i> Gestión de Trabajadores</h3>
+                            <div style="display: flex; gap: 0.75rem;">
+                                <button class="btn btn-primary btn-sm" onclick="openAddTrabajadorModal()" style="background: #0ea5e9; color: #000; font-weight: 700;">
+                                    <i class="fa-solid fa-user-plus"></i> Agregar Trabajador
+                                </button>
+                                <button class="btn btn-accent btn-sm" onclick="openActividadesRollModal()" style="font-weight: 700;">
+                                    <i class="fa-solid fa-calendar-days"></i> Generar Actividades
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Lista de Trabajadores Registrados (Grid) -->
+                        <div id="trabajadores-lista-grid" class="students-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                            <!-- Dinámico -->
+                        </div>
                     </div>
                 </div>
             </section>
@@ -674,6 +699,163 @@
                 <button type="button" class="btn btn-primary btn-sm" style="flex: 1; background: #0ea5e9; color: #000; font-weight: 700;" onclick="descargarReporteDesdeModal()">
                     <i class="fa-solid fa-file-arrow-down"></i> Descargar
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AGREGAR / EDITAR TRABAJADOR -->
+    <div id="modal-trabajador" class="modal-overlay" style="z-index: 100;">
+        <div class="modal-container" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3 id="modal-trabajador-title">Agregar Trabajador</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-trabajador')">&times;</button>
+            </div>
+            
+            <form id="form-trabajador" onsubmit="saveTrabajador(event)">
+                <input type="hidden" id="edit-trabajador-id">
+                
+                <div class="form-group">
+                    <label for="trabajador-nombre"><i class="fa-solid fa-signature"></i> Nombre Completo</label>
+                    <input type="text" id="trabajador-nombre" class="form-control" required placeholder="Nombre del trabajador">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="trabajador-telefono"><i class="fa-solid fa-phone"></i> Teléfono Móvil</label>
+                        <input type="tel" id="trabajador-telefono" class="form-control" required placeholder="10 dígitos">
+                    </div>
+                    <div class="form-group">
+                        <label for="trabajador-direccion"><i class="fa-solid fa-location-dot"></i> Dirección</label>
+                        <input type="text" id="trabajador-direccion" class="form-control" required placeholder="Calle, Número, Colonia">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="trabajador-emergencia-nombre"><i class="fa-solid fa-user-shield"></i> Contacto Emergencia (Nombre)</label>
+                        <input type="text" id="trabajador-emergencia-nombre" class="form-control" required placeholder="Ej: Esposa, Madre">
+                    </div>
+                    <div class="form-group">
+                        <label for="trabajador-emergencia-telefono"><i class="fa-solid fa-phone-flip"></i> Contacto Emergencia (Teléfono)</label>
+                        <input type="tel" id="trabajador-emergencia-telefono" class="form-control" required placeholder="10 dígitos">
+                    </div>
+                </div>
+
+                <!-- Campo Condicional: Fútbol (Categoría) -->
+                <div class="form-group group-futbol-trabajador" id="group-futbol-trabajador">
+                    <label for="trabajador-categoria"><i class="fa-solid fa-tags"></i> Categoría Deportiva Asignada</label>
+                    <input type="text" id="trabajador-categoria" class="form-control" placeholder="Ej: Sub 15, Biberones">
+                </div>
+
+                <!-- Campo Condicional: Gimnasio / Otros (Horario) -->
+                <div class="form-group group-gimnasio-trabajador" id="group-gimnasio-trabajador">
+                    <label for="trabajador-horario"><i class="fa-solid fa-clock"></i> Horario de Trabajo</label>
+                    <input type="text" id="trabajador-horario" class="form-control" placeholder="Ej: Lunes a Viernes 8:00 AM - 4:00 PM">
+                </div>
+                
+                <!-- CAPTURA DE FOTO DEL TRABAJADOR -->
+                <div class="form-group">
+                    <label><i class="fa-solid fa-camera"></i> Fotografía del Trabajador</label>
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <img id="upload-preview-trabajador" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='10' fill='%236B7280'>Vista Previa</text></svg>" class="sede-logo-preview" style="width: 85px; height: 85px;">
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <label class="btn btn-outline btn-sm" style="margin:0; flex:1; justify-content:center;">
+                                    <i class="fa-solid fa-upload"></i> Subir Foto
+                                    <input type="file" accept="image/*" onchange="previewTrabajadorImage(event)" style="display: none;">
+                                </label>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="encenderCamaraTrabajador()" style="flex:1;">
+                                    <i class="fa-solid fa-video"></i> Tomar Foto
+                                </button>
+                            </div>
+                            
+                            <!-- Contenedor Cámara en Vivo -->
+                            <div id="camara-contenedor-trabajador" class="camera-stream-wrapper" style="display: none; width: 100%; border-radius: 12px; overflow: hidden; position: relative;">
+                                <video id="video-stream-trabajador" autoplay playsinline style="width: 100%; height: auto; display: block;"></video>
+                                <div style="position: absolute; bottom: 0.5rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; z-index: 10;">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="capturarFotoTrabajador()">
+                                        <i class="fa-solid fa-camera"></i> Capturar
+                                    </button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="apagarCamaraTrabajador()">
+                                        Cancelar
+                                    </button>
+                                </div>
+                                <canvas id="hidden-canvas-trabajador" style="display: none;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-trabajador')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1; background: var(--color-primary); color: #000; font-weight: bold;" id="btn-save-trabajador-submit">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: GENERAR ACTIVIDADES / ROLL DE ACTIVIDADES -->
+    <div id="modal-actividades-roll" class="modal-overlay" style="z-index: 100;">
+        <div class="modal-container" style="max-width: 700px; padding: 2rem;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-calendar-days"></i> Roll de Actividades / Tareas</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-actividades-roll')">&times;</button>
+            </div>
+            
+            <!-- Formulario de programación de actividades -->
+            <form id="form-actividad-programar" onsubmit="registrarActividadRoll(event)" style="background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem;">
+                <h4 style="margin-bottom: 1rem; font-family: var(--font-title);"><i class="fa-solid fa-calendar-plus"></i> Programar Nueva Actividad</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="actividad-trabajador"><i class="fa-solid fa-user-tie"></i> Trabajador</label>
+                        <select id="actividad-trabajador" class="form-control" required style="background: #111827;">
+                            <!-- Dinámico -->
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="actividad-nombre"><i class="fa-solid fa-running"></i> Actividad</label>
+                        <input type="text" id="actividad-nombre" class="form-control" required placeholder="Ej: Clase de Spinning, Entrenamiento">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="actividad-dia"><i class="fa-solid fa-calendar-day"></i> Día</label>
+                        <select id="actividad-dia" class="form-control" required style="background: #111827;">
+                            <option value="Lunes">Lunes</option>
+                            <option value="Martes">Martes</option>
+                            <option value="Miércoles">Miércoles</option>
+                            <option value="Jueves">Jueves</option>
+                            <option value="Viernes">Viernes</option>
+                            <option value="Sábado">Sábado</option>
+                            <option value="Domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="actividad-hora"><i class="fa-solid fa-clock"></i> Hora</label>
+                        <input type="time" id="actividad-hora" class="form-control" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-accent" style="width: 100%; height: 42px; margin-top: 1rem;">
+                    <i class="fa-solid fa-calendar-check"></i> Asignar Actividad al Roll
+                </button>
+            </form>
+
+            <!-- Tabla de visualización del Roll -->
+            <h4 style="margin-bottom: 1rem; font-family: var(--font-title);"><i class="fa-solid fa-table-list"></i> Actividades Programadas</h4>
+            <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+                <table class="accounting-table">
+                    <thead>
+                        <tr>
+                            <th>Trabajador</th>
+                            <th>Actividad</th>
+                            <th>Día</th>
+                            <th>Hora</th>
+                            <th style="text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="actividades-roll-tbody">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
