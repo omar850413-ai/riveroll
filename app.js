@@ -869,7 +869,7 @@ function openAddSedeModal() {
     document.getElementById('modal-sede-title').innerText = "Registrar Nueva Sede / Negocio";
     document.getElementById('edit-sede-id').value = "";
     document.getElementById('form-sede').reset();
-    document.getElementById('sede-corte').valueAsDate = new Date();
+    document.getElementById('sede-corte').value = "1 al 5 de cada mes";
     state.base64SedeLogo = '';
     document.getElementById('sede-upload-preview').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='8' fill='%236B7280'>Logo</text></svg>";
     document.getElementById('modal-sede').classList.add('active');
@@ -885,7 +885,7 @@ function openEditSedeModal(id) {
     document.getElementById('sede-rubro').value = Sede.rubro;
     document.getElementById('sede-inscripcion').value = Sede.inscripcion;
     document.getElementById('sede-mensualidad').value = Sede.mensualidad;
-    document.getElementById('sede-corte').value = Sede.fechaCorte || '';
+    document.getElementById('sede-corte').value = Sede.fechaCorte || '1 al 5 de cada mes';
     
     state.base64SedeLogo = Sede.logo || '';
     document.getElementById('sede-upload-preview').src = Sede.logo || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='8' fill='%236B7280'>Logo</text></svg>";
