@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v9') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v9', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v10') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v10', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();

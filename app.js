@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '9.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '9.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '10.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '10.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -49,6 +49,7 @@ let speechRecognitionInstancia = null;
 
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
+    history.replaceState({ view: 'dashboard' }, "");
     // Inicializar el Listener de Autenticación de Firebase
     firebase.auth().onAuthStateChanged((user) => {
         if (user) {
@@ -202,10 +203,16 @@ function renderSedes() {
 
 // --- NAVEGACIÓN EN CASCADA (DRILL-DOWN) ---
 function irADetalleSede(sedeId) {
+    if (!history.state || history.state.view !== 'detalle' || history.state.sedeId !== sedeId) {
+        history.pushState({ view: 'detalle', sedeId: sedeId }, "");
+    }
+    ejecutarIrADetalleSinPush(sedeId);
+}
+
+function ejecutarIrADetalleSinPush(sedeId) {
     state.activeSedeId = sedeId;
     state.activeSedeSubView = 'miembros';
     
-    // Cambiar clases activas de sub-pestañas
     const btnMiembros = document.getElementById('subtab-miembros-btn');
     const btnConta = document.getElementById('subtab-contabilidad-btn');
     const btnTotales = document.getElementById('subtab-totales-btn');
@@ -216,7 +223,6 @@ function irADetalleSede(sedeId) {
     
     const esSoccer = sede.rubro === 'soccer';
     
-    // Adaptar colores de las pestañas internas
     btnMiembros.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
     btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
     if (btnTotales) btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
@@ -224,17 +230,24 @@ function irADetalleSede(sedeId) {
     
     actualizarEncabezadoDetalleSede();
     
-    // Alternar paneles de vista
     document.getElementById('panel-dashboard').classList.remove('active');
     document.getElementById('panel-detalle-sede').classList.add('active');
     
-    // Resetear sub-vistas
     switchSedeView('miembros');
 }
 
 function volverAlDashboard() {
+    if (history.state && history.state.view === 'detalle') {
+        history.back();
+    } else {
+        ejecutarVolverAlDashboardSinPush();
+    }
+}
+
+function ejecutarVolverAlDashboardSinPush() {
     state.activeSedeId = null;
-    apagarCamara(); // Asegurar apagar la cámara si se dejó abierta
+    apagarCamara();
+    apagarCamaraTrabajador();
     
     document.getElementById('panel-detalle-sede').classList.remove('active');
     document.getElementById('panel-dashboard').classList.add('active');
@@ -1205,12 +1218,53 @@ function previewSedeLogo(event) {
     reader.readAsDataURL(file);
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-    if (modalId === 'modal-alumno') {
-        apagarCamara();
+function openModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) {
+        el.classList.add('active');
+        if (!history.state || history.state.modalId !== modalId) {
+            history.pushState({ view: 'modal', modalId: modalId }, "");
+        }
     }
 }
+
+function closeModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) {
+        el.classList.remove('active');
+        if (modalId === 'modal-alumno') {
+            apagarCamara();
+        }
+        if (modalId === 'modal-trabajador') {
+            apagarCamaraTrabajador();
+        }
+        if (history.state && history.state.view === 'modal' && history.state.modalId === modalId) {
+            history.back();
+        }
+    }
+}
+
+window.addEventListener('popstate', (event) => {
+    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    if (activeModals.length > 0) {
+        activeModals.forEach(modal => {
+            modal.classList.remove('active');
+            if (modal.id === 'modal-alumno') apagarCamara();
+            if (modal.id === 'modal-trabajador') apagarCamaraTrabajador();
+        });
+        return;
+    }
+
+    if (event.state) {
+        if (event.state.view === 'dashboard') {
+            ejecutarVolverAlDashboardSinPush();
+        } else if (event.state.view === 'detalle') {
+            ejecutarIrADetalleSinPush(event.state.sedeId);
+        }
+    } else {
+        ejecutarVolverAlDashboardSinPush();
+    }
+});
 
 function obtenerNombreMes(fechaStr) {
     const partes = fechaStr.split('-');
