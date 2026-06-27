@@ -1225,3 +1225,12 @@ function enviarComprobanteWhatsApp(miembroId) {
     const formattedPhone = miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : `52${miembro.tutorTelefono}`;
     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
 }
+
+// --- REGISTRO DEL SERVICE WORKER (PWA INSTALABLE) ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado con éxito como PWA.'))
+            .catch(err => console.warn('Error al registrar Service Worker PWA:', err));
+    });
+}
