@@ -1,6 +1,7 @@
 /**
  * app.js - Lógica de Negocio Corporativa de la Academia & Gym Riveroll
- * Implementa suscripción reactiva en tiempo real (Firebase/Local) y control operativo.
+ * Implementa suscripción reactiva en tiempo real (Firebase/Local), control operativo,
+ * y soporte completo de edición/eliminación de sedes.
  */
 
 // --- ESTADO GLOBAL DE LA APLICACIÓN ---
@@ -62,39 +63,34 @@ document.addEventListener('DOMContentLoaded', () => {
     actualizarBotonEstadoNube();
 });
 
-// --- RENDERIZACIÓN GENERAL DE KPIs ---
+// --- ACTUALIZACIÓN DE INDICADORES (KPIs) ---
 function updateKPIs() {
-    // Clasificar miembros por rubro de su sede
     const alumnosFutbol = state.alumnos.filter(a => {
-        const sede = state.sedes.find(s => s.id === a.sedeId);
-        return sede && sede.rubro === 'soccer';
+        const Sede = state.sedes.find(s => s.id === a.sedeId);
+        return Sede && Sede.rubro === 'soccer';
     });
     
     const suscriptoresGym = state.alumnos.filter(a => {
-        const sede = state.sedes.find(s => s.id === a.sedeId);
-        return sede && sede.rubro === 'gym';
+        const Sede = state.sedes.find(s => s.id === a.sedeId);
+        return Sede && Sede.rubro === 'gym';
     });
     
-    // Caja mensual (Junio 2026)
     const mesActualStr = '2026-06';
     const ingresosMes = state.transacciones
         .filter(t => t.tipo === 'ingreso' && t.fecha.startsWith(mesActualStr))
         .reduce((sum, t) => sum + t.monto, 0);
         
-    // Total de miembros con algún adeudo activo
     const totalAdeudos = state.alumnos.filter(a => {
         const tieneAdeudoInscripcion = a.pagos.inscripcion === 'adeudo';
         const tieneAdeudoMensualidades = Object.values(a.pagos.mensualidades).some(v => v === 'adeudo');
         return tieneAdeudoInscripcion || tieneAdeudoMensualidades;
     }).length;
 
-    // Escribir en DOM
     document.getElementById('kpi-futbol-alumnos').innerText = alumnosFutbol.length;
     document.getElementById('kpi-gym-suscriptores').innerText = suscriptoresGym.length;
     document.getElementById('kpi-ingresos-mes').innerText = `$${ingresosMes.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
     document.getElementById('kpi-adeudos-alumnos').innerText = totalAdeudos;
     
-    // Contabilidad consolidada
     const totalIngresos = state.transacciones.filter(t => t.tipo === 'ingreso').reduce((sum, t) => sum + t.monto, 0);
     const totalEgresos = state.transacciones.filter(t => t.tipo === 'egreso').reduce((sum, t) => sum + t.monto, 0);
     const balanceNeto = totalIngresos - totalEgresos;
@@ -126,7 +122,6 @@ function actualizarBotonEstadoNube() {
 
 // --- LISTAS DEL DASHBOARD ---
 function renderDashboardLists() {
-    // 1. Cobros urgentes
     const cobrosContainer = document.getElementById('dashboard-cobros-pendientes');
     if (!cobrosContainer) return;
     cobrosContainer.innerHTML = '';
@@ -168,7 +163,6 @@ function renderDashboardLists() {
         });
     }
 
-    // 2. Transacciones recientes
     const transaccionesContainer = document.getElementById('dashboard-ultimas-transacciones');
     if (!transaccionesContainer) return;
     transaccionesContainer.innerHTML = '';
@@ -204,7 +198,7 @@ function renderDashboardLists() {
     }
 }
 
-// --- RENDER DE SEDES Y NEGOCIOS ---
+// --- RENDER DE SEDES Y NEGOCIOS (CON EDITAR Y ELIMINAR) ---
 function renderSedes() {
     const grid = document.getElementById('sedes-grid');
     if (!grid) return;
@@ -229,15 +223,23 @@ function renderSedes() {
                     </span>
                 </div>
             </div>
-            <div style="background: rgba(0,0,0,0.15); padding: 0.75rem; border-radius: 10px; font-size: 0.85rem;">
+            <div style="background: rgba(0,0,0,0.15); padding: 0.75rem; border-radius: 10px; font-size: 0.85rem; margin-bottom: 1rem;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
-                    <span style="color: var(--color-text-muted);">Cuota Inscripción:</span>
+                    <span style="color: var(--color-text-muted);">Inscripción:</span>
                     <strong style="color: #fff;">$${sede.inscripcion}</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--color-text-muted);">Cuota Mensual:</span>
+                    <span style="color: var(--color-text-muted);">Mensualidad:</span>
                     <strong style="color: #fff;">$${sede.mensualidad}</strong>
                 </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-outline btn-sm" onclick="openEditSedeModal('${sede.id}')" style="flex: 1; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                    <i class="fa-solid fa-pen-to-square"></i> Editar
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarSede('${sede.id}')" style="flex: 1; padding: 0.4rem 0.75rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.15); color: var(--color-danger); border: 1px solid rgba(239, 68, 68, 0.2);">
+                    <i class="fa-solid fa-trash-can"></i> Eliminar
+                </button>
             </div>
         `;
         grid.appendChild(card);
@@ -252,10 +254,9 @@ function renderAlumnosList(miembrosFiltrados = null) {
     
     const origenMiembros = miembrosFiltrados || state.alumnos;
     
-    // Filtrar miembros según la sub-pestaña activa ('soccer' o 'gym')
     const miembrosRubroActivo = origenMiembros.filter(m => {
-        const sede = state.sedes.find(s => s.id === m.sedeId);
-        return sede && sede.rubro === state.activeSubTab;
+        const Sede = state.sedes.find(s => s.id === m.sedeId);
+        return Sede && Sede.rubro === state.activeSubTab;
     });
     
     if (miembrosRubroActivo.length === 0) {
@@ -321,8 +322,8 @@ function createMiembroCard(miembro, rubro) {
     const esSoccer = rubro === 'soccer';
     card.className = `student-card ${esSoccer ? 'border-soccer' : 'border-gym'}`;
     
-    const sede = state.sedes.find(s => s.id === miembro.sedeId);
-    const sedeNombre = sede ? sede.nombre : 'Sin Sede';
+    const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+    const SedeNombre = Sede ? Sede.nombre : 'Sin Sede';
     
     const avatarHtml = miembro.foto 
         ? `<img src="${miembro.foto}" alt="${miembro.nombre}" class="student-avatar">`
@@ -338,7 +339,7 @@ function createMiembroCard(miembro, rubro) {
                 ${avatarHtml}
                 <div class="student-details-txt">
                     <h3>${miembro.nombre}</h3>
-                    <p style="font-size:0.75rem; color: ${esSoccer ? 'var(--color-primary)' : 'var(--color-gym)'}; font-weight:700;">${sedeNombre}</p>
+                    <p style="font-size:0.75rem; color: ${esSoccer ? 'var(--color-primary)' : 'var(--color-gym)'}; font-weight:700;">${SedeNombre}</p>
                     <p><i class="fa-solid fa-user-shield"></i> Tutor: ${miembro.tutorNombre}</p>
                     <p><i class="fa-solid fa-phone"></i> Tel: ${miembro.tutorTelefono}</p>
                     <span>${esSoccer ? `Nacimiento: ${miembro.fechaNacimiento}` : `Plan de Gimnasio`}</span>
@@ -362,18 +363,21 @@ function createMiembroCard(miembro, rubro) {
         </div>
         
         <div class="student-card-actions">
-            <button class="btn btn-outline btn-sm" onclick="openEditAlumnoModal('${miembro.id}')">
+            <button class="btn btn-outline btn-sm" onclick="openEditAlumnoModal('${miembro.id}')" style="flex: 1;">
                 <i class="fa-solid fa-pen-to-square"></i> Editar
             </button>
-            <button class="btn ${esSoccer ? 'btn-primary' : 'btn-gym'} btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}', 'general')">
+            <button class="btn ${esSoccer ? 'btn-primary' : 'btn-gym'} btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}', 'general')" style="flex: 1;">
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="eliminarMiembro('${miembro.id}')" style="background: rgba(239, 68, 68, 0.15); color: var(--color-danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.4rem; border-radius: 8px;" title="Eliminar Miembro">
+                <i class="fa-solid fa-trash-can"></i>
             </button>
         </div>
     `;
     return card;
 }
 
-// --- PLANILLA GENERAL DE COBROS (TABLA) ---
+// --- PLANILLA GENERAL DE COBROS ---
 function renderPlanillaPagos() {
     const tbody = document.getElementById('planilla-pagos-tbody');
     if (!tbody) return;
@@ -392,9 +396,9 @@ function renderPlanillaPagos() {
     
     miembrosFiltrados.forEach(miembro => {
         const tr = document.createElement('tr');
-        const sede = state.sedes.find(s => s.id === miembro.sedeId);
-        const sedeNombre = sede ? sede.nombre : 'Sede';
-        const esSoccer = sede && sede.rubro === 'soccer';
+        const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+        const SedeNombre = Sede ? Sede.nombre : 'Sede';
+        const esSoccer = Sede && Sede.rubro === 'soccer';
         
         const pagoInsc = miembro.pagos.inscripcion;
         const pagoAbril = miembro.pagos.mensualidades['2026-04'] || 'pendiente';
@@ -407,7 +411,7 @@ function renderPlanillaPagos() {
                     ${miembro.foto ? `<img src="${miembro.foto}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">` : `<div style="width: 35px; height: 35px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--color-text-muted); border: 1px dashed rgba(255,255,255,0.1);"><i class="fa-solid ${esSoccer ? 'fa-user' : 'fa-dumbbell'}"></i></div>`}
                     <div>
                         <span style="display: block; color: #fff;">${miembro.nombre}</span>
-                        <small style="color: ${esSoccer ? 'var(--color-accent)' : 'var(--color-gym)'}; font-weight: 700;">${sedeNombre} ${esSoccer ? `(Cat. ${miembro.categoria})` : '(Gym)'}</small>
+                        <small style="color: ${esSoccer ? 'var(--color-accent)' : 'var(--color-gym)'}; font-weight: 700;">${SedeNombre} ${esSoccer ? `(Cat. ${miembro.categoria})` : '(Gym)'}</small>
                     </div>
                 </div>
             </td>
@@ -454,8 +458,8 @@ async function togglePagoDirecto(miembroId, campo) {
     if (index === -1) return;
     
     const miembro = alumnos[index];
-    const sede = state.sedes.find(s => s.id === miembro.sedeId);
-    if (!sede) return;
+    const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+    if (!Sede) return;
     
     const estados = ['pendiente', 'pagado', 'adeudo'];
     
@@ -469,8 +473,8 @@ async function togglePagoDirecto(miembroId, campo) {
                 id: 't_' + Date.now(),
                 tipo: 'ingreso',
                 categoria: 'Inscripción',
-                monto: sede.inscripcion,
-                descripcion: `Inscripción de ${miembro.nombre} (${sede.nombre})`,
+                monto: Sede.inscripcion,
+                descripcion: `Inscripción de ${miembro.nombre} (${Sede.nombre})`,
                 fecha: obtenerFechaActualStr()
             });
         }
@@ -484,14 +488,13 @@ async function togglePagoDirecto(miembroId, campo) {
                 id: 't_' + Date.now(),
                 tipo: 'ingreso',
                 categoria: 'Mensualidad',
-                monto: sede.mensualidad,
-                descripcion: `Mensualidad ${obtenerNombreMes(campo)} de ${miembro.nombre} (${sede.nombre})`,
+                monto: Sede.mensualidad,
+                descripcion: `Mensualidad ${obtenerNombreMes(campo)} de ${miembro.nombre} (${Sede.nombre})`,
                 fecha: obtenerFechaActualStr()
             });
         }
     }
     
-    // Guardar cambios usando el adaptador híbrido (actualización asíncrona)
     await window.db.actualizarAlumno(miembroId, miembro);
 }
 
@@ -573,8 +576,8 @@ function cargarDetallePartido() {
     if (!partido) return;
     
     const alumnosCategoria = state.alumnos.filter(a => {
-        const sede = state.sedes.find(s => s.id === a.sedeId);
-        return a.categoria === partido.categoria && sede && sede.rubro === 'soccer';
+        const Sede = state.sedes.find(s => s.id === a.sedeId);
+        return a.categoria === partido.categoria && Sede && Sede.rubro === 'soccer';
     });
     
     if (alumnosCategoria.length === 0) {
@@ -672,13 +675,13 @@ async function toggleArbitrajePartido(partidoId, alumnoId) {
     await window.db.actualizarPartido(partidoId, partido);
 }
 
-// --- CREACIÓN / EDICIÓN DE MIEMBROS ---
+// --- GESTIÓN DE MIEMBROS (EDITAR / ELIMINAR) ---
 async function saveAlumno(event) {
     event.preventDefault();
     
     const id = document.getElementById('edit-alumno-id').value;
     const nombre = document.getElementById('alumno-nombre').value;
-    const sedeId = document.getElementById('alumno-sede').value;
+    const SedeId = document.getElementById('alumno-sede').value;
     const fechaNacimiento = document.getElementById('alumno-nacimiento').value;
     const categoria = document.getElementById('alumno-categoria').value;
     const tutorNombre = document.getElementById('alumno-tutor').value;
@@ -686,7 +689,7 @@ async function saveAlumno(event) {
     
     const nuevoMiembro = {
         nombre,
-        sedeId,
+        sedeId: SedeId,
         fechaNacimiento,
         categoria,
         tutorNombre,
@@ -707,7 +710,6 @@ async function saveAlumno(event) {
         await window.db.agregarAlumno(nuevoMiembro);
     }
     
-    // Resetear formulario
     document.getElementById('form-alumno').reset();
     state.base64Foto = '';
     document.getElementById('upload-preview').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%236B7280'>Vista Previa</text></svg>";
@@ -715,23 +717,69 @@ async function saveAlumno(event) {
     closeModal('modal-alumno');
 }
 
-// --- CREACIÓN DE SEDES ---
+async function eliminarMiembro(id) {
+    const miembro = state.alumnos.find(a => a.id === id);
+    if (!miembro) return;
+    
+    if (confirm(`¿Estás seguro de eliminar permanentemente a "${miembro.nombre}"?`)) {
+        await window.db.eliminarAlumno(id);
+    }
+}
+
+// --- GESTIÓN DE SEDES (CREAR, EDITAR, ELIMINAR) ---
+function openEditSedeModal(id) {
+    const Sede = state.sedes.find(s => s.id === id);
+    if (!Sede) return;
+    
+    document.getElementById('modal-sede-title').innerText = "Editar Sede / Negocio";
+    document.getElementById('edit-sede-id').value = Sede.id;
+    document.getElementById('sede-nombre').value = Sede.nombre;
+    document.getElementById('sede-rubro').value = Sede.rubro;
+    document.getElementById('sede-inscripcion').value = Sede.inscripcion;
+    document.getElementById('sede-mensualidad').value = Sede.mensualidad;
+    
+    document.getElementById('modal-sede').classList.add('active');
+}
+
+async function eliminarSede(id) {
+    const Sede = state.sedes.find(s => s.id === id);
+    if (!Sede) return;
+    
+    const miembrosVinculados = state.alumnos.filter(a => a.sedeId === id);
+    if (miembrosVinculados.length > 0) {
+        if (!confirm(`Advertencia: Hay ${miembrosVinculados.length} miembros vinculados a la sede "${Sede.nombre}". Si la eliminas, estos miembros quedarán sin sede asignada. ¿Deseas continuar con la eliminación de esta sede?`)) {
+            return;
+        }
+    } else {
+        if (!confirm(`¿Estás seguro de eliminar permanentemente la sede "${Sede.nombre}"?`)) {
+            return;
+        }
+    }
+    await window.db.eliminarSede(id);
+}
+
 async function saveSede(event) {
     event.preventDefault();
     
+    const id = document.getElementById('edit-sede-id').value;
     const nombre = document.getElementById('sede-nombre').value;
     const rubro = document.getElementById('sede-rubro').value;
     const inscripcion = parseFloat(document.getElementById('sede-inscripcion').value);
     const mensualidad = parseFloat(document.getElementById('sede-mensualidad').value);
     
-    const nuevaSede = {
+    const datosSede = {
         nombre,
         rubro,
         inscripcion,
         mensualidad
     };
     
-    await window.db.agregarSede(nuevaSede);
+    if (id) {
+        await window.db.actualizarSede(id, datosSede);
+    } else {
+        await window.db.agregarSede(datosSede);
+    }
+    
     document.getElementById('form-sede').reset();
     closeModal('modal-sede');
 }
@@ -802,10 +850,10 @@ function renderCredenciales() {
     }
     
     miembrosFiltrados.forEach(miembro => {
-        const sede = state.sedes.find(s => s.id === miembro.sedeId);
-        if (!sede) return;
+        const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+        if (!Sede) return;
         
-        const esSoccer = sede.rubro === 'soccer';
+        const esSoccer = Sede.rubro === 'soccer';
         const tieneAdeudoMortal = miembro.pagos.inscripcion === 'adeudo' || 
                                   miembro.pagos.mensualidades['2026-05'] === 'adeudo' ||
                                   miembro.pagos.inscripcion === 'pendiente';
@@ -813,7 +861,7 @@ function renderCredenciales() {
         const estatusActivo = !tieneAdeudoMortal;
         const estatusTexto = estatusActivo ? 'activo' : 'inactivo';
         
-        const qrContent = `Riveroll Corporativo | Sede: ${sede.nombre} | Miembro: ${miembro.nombre} | Estatus: ${estatusTexto.toUpperCase()} | Emergencias: ${miembro.tutorNombre} (${miembro.tutorTelefono})`;
+        const qrContent = `Riveroll Corporativo | Sede: ${Sede.nombre} | Miembro: ${miembro.nombre} | Estatus: ${estatusTexto.toUpperCase()} | Emergencias: ${miembro.tutorNombre} (${miembro.tutorTelefono})`;
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrContent)}&color=070a13`;
         
         const cardEl = document.createElement('div');
@@ -949,16 +997,15 @@ function actualizarSelectoresFiltros() {
     }
 }
 
-// Manejar cambios de Sede en formulario para adaptar el perfil
 function handleSedeChangeEnFormulario() {
     const select = document.getElementById('alumno-sede');
     if (!select) return;
-    const sedeId = select.value;
-    const sede = state.sedes.find(s => s.id === sedeId);
+    const SedeId = select.value;
+    const Sede = state.sedes.find(s => s.id === SedeId);
     const nacInput = document.getElementById('alumno-nacimiento');
     const catInput = document.getElementById('alumno-categoria');
     
-    if (sede && sede.rubro === 'gym') {
+    if (Sede && Sede.rubro === 'gym') {
         if (nacInput) {
             nacInput.required = false;
             nacInput.value = '';
@@ -970,36 +1017,6 @@ function handleSedeChangeEnFormulario() {
         }
         calcularCategoriaAuto();
     }
-}
-
-// --- COMPARTIR WHATSAPP ---
-function enviarRecordatorioWhatsApp(miembroId, tipo) {
-    const miembro = state.alumnos.find(a => a.id === miembroId);
-    if (!miembro) return;
-    
-    const Sede = state.sedes.find(s => s.id === miembro.sedeId);
-    if (!Sede) return;
-    
-    const nombreTutor = miembro.tutorNombre;
-    const nombreMiembro = miembro.nombre;
-    const telefono = miembro.tutorTelefono;
-    
-    let mensaje = '';
-    
-    if (tipo === 'adeudo') {
-        const deudas = [];
-        if (miembro.pagos.inscripcion === 'adeudo') deudas.push('Inscripción');
-        Object.entries(miembro.pagos.mensualidades).forEach(([mes, status]) => {
-            if (status === 'adeudo') deudas.push(`Mensualidad de ${obtenerNombreMes(mes)}`);
-        });
-        
-        mensaje = `Hola ${nombreTutor}, le saludamos del Corporativo Riveroll. Le recordamos respetuosamente que se encuentra pendiente el pago de ${deudas.join(' y ')} de ${nombreMiembro} en la sede ${Sede.nombre}. Le agradecemos realizar su pago mediante transferencia para regularizar su cuenta. ¡Muchas gracias por su apoyo!`;
-    } else {
-        mensaje = `Hola ${nombreTutor}, le saludamos de Corporativo Riveroll. Le compartimos el estatus administrativo de ${nombreMiembro} en la sede ${Sede.nombre}. Inscripción: ${miembro.pagos.inscripcion.toUpperCase()} | Mensualidad Junio: ${(miembro.pagos.mensualidades['2026-06'] || 'pendiente').toUpperCase()}. Estamos a sus órdenes.`;
-    }
-    
-    const formattedPhone = telefono.startsWith('52') ? telefono : `52${telefono}`;
-    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
 }
 
 // --- BUSCADOR Y FILTRADO ---
@@ -1094,6 +1111,8 @@ function obtenerFechaActualStr() {
 
 // --- MODALES ---
 function openAddSedeModal() {
+    document.getElementById('modal-sede-title').innerText = "Registrar Nueva Sede / Negocio";
+    document.getElementById('edit-sede-id').value = "";
     document.getElementById('form-sede').reset();
     document.getElementById('modal-sede').classList.add('active');
 }
@@ -1159,95 +1178,4 @@ function previewImage(event) {
         document.getElementById('upload-preview').src = e.target.result;
     };
     reader.readAsDataURL(file);
-}
-
-function enviarMensajeArbitraje(alumnoId, costo, rival) {
-    const alumno = state.alumnos.find(a => a.id === alumnoId);
-    if (!alumno) return;
-    
-    const mensaje = `Hola ${alumno.tutorNombre}, le saludamos de la Academia de Fútbol Riveroll. Le recordamos amablemente el pago de la cuota de arbitraje de su hijo ${alumno.nombre} por un monto de $${costo} correspondiente al partido contra ${rival}. Le agradecemos realizar su pago mediante depósito o transferencia. ¡Muchas gracias por su valiosa cooperación!`;
-    
-    const formattedPhone = alumno.tutorTelefono.startsWith('52') ? alumno.tutorTelefono : `52${alumno.tutorTelefono}`;
-    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
-}
-
-// --- IMPRIMIR CONTABILIDAD ---
-function exportarContabilidad() {
-    const printWindow = window.open('', '_blank');
-    const totalIngresos = state.transacciones.filter(t => t.tipo === 'ingreso').reduce((sum, t) => sum + t.monto, 0);
-    const totalEgresos = state.transacciones.filter(t => t.tipo === 'egreso').reduce((sum, t) => sum + t.monto, 0);
-    const balanceNeto = totalIngresos - totalEgresos;
-
-    let tableRows = '';
-    state.transacciones.forEach(t => {
-        tableRows += `
-            <tr>
-                <td>${t.fecha}</td>
-                <td>${t.tipo.toUpperCase()}</td>
-                <td>${t.categoria}</td>
-                <td>${t.descripcion}</td>
-                <td>$${t.monto.toFixed(2)}</td>
-            </tr>
-        `;
-    });
-
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Reporte de Caja Consolidado - Corporativo Riveroll</title>
-            <style>
-                body { font-family: 'Helvetica', sans-serif; color: #333; padding: 20px; }
-                h1 { text-align: center; font-size: 24px; margin-bottom: 5px; }
-                p.subtitle { text-align: center; color: #666; margin-bottom: 30px; }
-                .kpi-container { display: flex; justify-content: space-between; margin-bottom: 30px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
-                .kpi-box { text-align: center; flex: 1; }
-                .kpi-box h4 { margin: 0; color: #777; font-size: 12px; text-transform: uppercase; }
-                .kpi-box p { margin: 5px 0 0 0; font-size: 20px; font-weight: bold; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
-                th { background-color: #f2f2f2; }
-                tr:nth-child(even) { background-color: #fafafa; }
-            </style>
-        </head>
-        <body>
-            <h1>Corporativo Riveroll</h1>
-            <p class="subtitle">Reporte Consolidado de Caja - Generado el ${new Date().toLocaleDateString()}</p>
-            
-            <div class="kpi-container">
-                <div class="kpi-box">
-                    <h4>Total Ingresos</h4>
-                    <p style="color: green;">$${totalIngresos.toFixed(2)}</p>
-                </div>
-                <div class="kpi-box">
-                    <h4>Total Egresos</h4>
-                    <p style="color: red;">$${totalEgresos.toFixed(2)}</p>
-                </div>
-                <div class="kpi-box">
-                    <h4>Balance Neto</h4>
-                    <p style="color: ${balanceNeto >= 0 ? 'green' : 'red'};">$${balanceNeto.toFixed(2)}</p>
-                </div>
-            </div>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Tipo</th>
-                        <th>Categoría</th>
-                        <th>Descripción</th>
-                        <th>Monto</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
-            </table>
-            
-            <script>
-                window.onload = function() { window.print(); }
-            </script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
 }

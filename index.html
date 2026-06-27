@@ -479,10 +479,11 @@
     <div id="modal-sede" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3>Registrar Nueva Sede / Negocio</h3>
+                <h3 id="modal-sede-title">Registrar Nueva Sede / Negocio</h3>
                 <button class="modal-close" onclick="closeModal('modal-sede')">&times;</button>
             </div>
             <form id="form-sede" onsubmit="saveSede(event)">
+                <input type="hidden" id="edit-sede-id">
                 <div class="form-group">
                     <label for="sede-nombre"><i class="fa-solid fa-building"></i> Nombre de la Sede / Sucursal</label>
                     <input type="text" id="sede-nombre" class="form-control" required placeholder="Ej: Academia Riveroll Nte, Riveroll Centro Gym">

@@ -1,7 +1,7 @@
 /**
  * db.js - Adaptador Híbrido de Persistencia (Local / Firebase Firestore)
- * Permite alternar de forma transparente entre almacenamiento local (localStorage)
- * y una base de datos profesional en la nube (Firestore) en tiempo real.
+ * Versión de Producción Limpia (Sin Datos Demo).
+ * Soporta edición y eliminación completa de sedes, miembros, partidos y caja.
  */
 
 const STORAGE_KEYS = {
@@ -12,39 +12,16 @@ const STORAGE_KEYS = {
     PARTIDOS: 'riveroll_partidos'
 };
 
-// Datos Semilla para inicialización local offline
-const SEMILLA_SEDES = [
-    { id: 's1', nombre: 'Riveroll Soccer Academy', rubro: 'soccer', inscripcion: 600, mensualidad: 900 },
-    { id: 's2', nombre: 'Riveroll Fitness Gym', rubro: 'gym', inscripcion: 400, mensualidad: 700 }
-];
+// Datos Semilla de Producción (Vacíos por defecto para iniciar limpios)
+const SEMILLA_SEDES = [];
+const SEMILLA_ALUMNOS = [];
+const SEMILLA_TRANSACCIONES = [];
+const SEMILLA_PARTIDOS = [];
 
-const SEMILLA_ALUMNOS = [
-    { id: '1', nombre: 'Mateo Riveroll', fechaNacimiento: '2015-04-12', categoria: '2015', tutorNombre: 'Carlos Riveroll', tutorTelefono: '5551234567', foto: '', sedeId: 's1', pagos: { inscripcion: 'pagado', mensualidades: { '2026-04': 'pagado', '2026-05': 'pagado', '2026-06': 'pendiente' } } },
-    { id: '2', nombre: 'Santiago Gómez', fechaNacimiento: '2017-08-22', categoria: '2017', tutorNombre: 'Laura Gómez', tutorTelefono: '5559876543', foto: '', sedeId: 's1', pagos: { inscripcion: 'pagado', mensualidades: { '2026-04': 'pagado', '2026-05': 'adeudo', '2026-06': 'pendiente' } } },
-    { id: '3', nombre: 'Iker Ruiz', fechaNacimiento: '2014-11-05', categoria: '2014', tutorNombre: 'Juan Ruiz', tutorTelefono: '5555555555', foto: '', sedeId: 's1', pagos: { inscripcion: 'pendiente', mensualidades: { '2026-05': 'pendiente', '2026-06': 'pendiente' } } },
-    { id: '4', nombre: 'Valeria Méndez', fechaNacimiento: '1995-03-24', categoria: 'Adulto / Gym', tutorNombre: 'Margarita Méndez', tutorTelefono: '5557778899', foto: '', sedeId: 's2', pagos: { inscripcion: 'pagado', mensualidades: { '2026-05': 'pagado', '2026-06': 'pendiente' } } }
-];
-
-const SEMILLA_TRANSACCIONES = [
-    { id: 't1', tipo: 'ingreso', categoria: 'Inscripción', monto: 600, descripcion: 'Inscripción Mateo Riveroll (Riveroll Soccer Academy)', fecha: '2026-04-01' },
-    { id: 't2', tipo: 'ingreso', categoria: 'Mensualidad', monto: 900, descripcion: 'Mensualidad Abril Mateo Riveroll', fecha: '2026-04-05' },
-    { id: 't3', tipo: 'ingreso', categoria: 'Mensualidad', monto: 900, descripcion: 'Mensualidad Mayo Mateo Riveroll', fecha: '2026-05-02' },
-    { id: 't4', tipo: 'ingreso', categoria: 'Inscripción', monto: 600, descripcion: 'Inscripción Santiago Gómez', fecha: '2026-04-02' },
-    { id: 't5', tipo: 'ingreso', categoria: 'Mensualidad', monto: 900, descripcion: 'Mensualidad Abril Santiago Gómez', fecha: '2026-04-06' },
-    { id: 't6', tipo: 'ingreso', categoria: 'Mensualidad', monto: 700, descripcion: 'Mensualidad Mayo Valeria Méndez (Riveroll Fitness Gym)', fecha: '2026-05-05' },
-    { id: 't7', tipo: 'egreso', categoria: 'Renta de Canchas', monto: 1500, descripcion: 'Renta campo alterno para entrenamientos', fecha: '2026-06-18' }
-];
-
-const SEMILLA_PARTIDOS = [
-    { id: 'p1', categoria: '2015', rival: 'Leones Negros FC', fecha: '2026-06-27', asistencia: { '1': { asistio: true, arbitraje: 'pendiente' } } }
-];
-
-// Estado de conexión del adaptador
 let firebaseApp = null;
 let firestoreDb = null;
 let useFirebase = false;
 
-// Registro de Callbacks Reactivos (para simular onSnapshot en local)
 const listeners = {
     sedes: [],
     alumnos: [],
@@ -52,7 +29,6 @@ const listeners = {
     partidos: []
 };
 
-// Disparador local de eventos reactivos
 function notificarCambio(coleccion, datos) {
     if (listeners[coleccion]) {
         listeners[coleccion].forEach(callback => callback(datos));
@@ -60,7 +36,6 @@ function notificarCambio(coleccion, datos) {
 }
 
 const dbAdapter = {
-    // --- INICIALIZACIÓN E CONFIGURACIÓN ---
     inicializar() {
         const configStr = localStorage.getItem(STORAGE_KEYS.CONFIG_NUBE);
         if (configStr) {
@@ -68,35 +43,26 @@ const dbAdapter = {
                 const config = JSON.parse(configStr);
                 this.conectarFirebase(config);
             } catch (e) {
-                console.error("Error al cargar configuración de Firebase guardada:", e);
+                console.error("Error al cargar configuración de Firebase:", e);
                 useFirebase = false;
             }
         } else {
-            console.log("ℹ️ Operando en modo local offline (localStorage).");
             useFirebase = false;
         }
     },
 
     conectarFirebase(config) {
         if (!config || !config.apiKey || !config.projectId) {
-            throw new Error("Credenciales incompletas.");
+            throw new Error("Credenciales de Firebase incompletas.");
         }
-        
-        // Evitar doble inicialización
         if (firebase.apps.length > 0) {
             firebaseApp = firebase.app();
         } else {
             firebaseApp = firebase.initializeApp(config);
         }
-        
         firestoreDb = firebaseApp.firestore();
         useFirebase = true;
-        
-        // Guardar configuración en localStorage
         localStorage.setItem(STORAGE_KEYS.CONFIG_NUBE, JSON.stringify(config));
-        console.log("🔥 Conectado exitosamente a Firebase Firestore.");
-        
-        // Volver a enlazar los listeners activos a Firestore
         this.reconectarListenersNube();
         return true;
     },
@@ -105,9 +71,6 @@ const dbAdapter = {
         localStorage.removeItem(STORAGE_KEYS.CONFIG_NUBE);
         useFirebase = false;
         firestoreDb = null;
-        console.log("🔌 Desconectado de Firebase. Retornando a modo local.");
-        
-        // Notificar con datos locales
         notificarCambio('sedes', this.getSedesLocal());
         notificarCambio('alumnos', this.getAlumnosLocal());
         notificarCambio('transacciones', this.getTransaccionesLocal());
@@ -123,59 +86,46 @@ const dbAdapter = {
         return configStr ? JSON.parse(configStr) : null;
     },
 
-    // --- SUSCRIPCIONES REACTIVAS EN TIEMPO REAL ---
     suscribir(coleccion, callback) {
         if (!listeners[coleccion]) return;
         listeners[coleccion].push(callback);
         
         if (useFirebase && firestoreDb) {
-            // Suscribir directo a Firestore en tiempo real
             firestoreDb.collection(coleccion).onSnapshot(snapshot => {
                 const datos = [];
                 snapshot.forEach(doc => {
                     datos.push({ id: doc.id, ...doc.data() });
                 });
                 
-                // Si la colección es transacciones o partidos, ordenar
-                if (coleccion === 'transacciones') {
-                    datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-                } else if (coleccion === 'partidos') {
+                if (coleccion === 'transacciones' || coleccion === 'partidos') {
                     datos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
                 }
-                
                 callback(datos);
             }, error => {
-                console.error(`Error en listener de Firestore para ${coleccion}:`, error);
+                console.error(`Error en listener de ${coleccion}:`, error);
             });
         } else {
-            // Retornar datos locales inmediatamente
             let datosLocal = [];
             if (coleccion === 'sedes') datosLocal = this.getSedesLocal();
             else if (coleccion === 'alumnos') datosLocal = this.getAlumnosLocal();
             else if (coleccion === 'transacciones') datosLocal = this.getTransaccionesLocal();
             else if (coleccion === 'partidos') datosLocal = this.getPartidosLocal();
-            
             callback(datosLocal);
         }
     },
 
     reconectarListenersNube() {
         if (!useFirebase || !firestoreDb) return;
-        
-        // Volver a detonar las suscripciones conectándolas a Firestore
         Object.keys(listeners).forEach(coleccion => {
             const callbacksActivos = [...listeners[coleccion]];
-            // Limpiar los listeners locales viejos
             listeners[coleccion] = [];
-            
-            // Re-vincular cada callback a Firestore
             callbacksActivos.forEach(cb => {
                 this.suscribir(coleccion, cb);
             });
         });
     },
 
-    // --- MÉTODOS LOCALES (FALLBACK) ---
+    // --- LOCAL STORAGE GETTERS/SETTERS ---
     getSedesLocal() {
         const data = localStorage.getItem(STORAGE_KEYS.SEDES);
         if (!data) { this.saveSedesLocal(SEMILLA_SEDES); return SEMILLA_SEDES; }
@@ -204,9 +154,9 @@ const dbAdapter = {
     },
     savePartidosLocal(data) { localStorage.setItem(STORAGE_KEYS.PARTIDOS, JSON.stringify(data)); },
 
-    // --- OPERACIONES DE ESCRITURA CONSOLIDADAS (HÍBRIDAS) ---
-    
-    // 1. SEDES
+    // --- OPERACIONES DE ESCRITURA ---
+
+    // 1. SEDES (CON EDITAR Y ELIMINAR)
     async agregarSede(sede) {
         if (useFirebase && firestoreDb) {
             const docRef = await firestoreDb.collection('sedes').add(sede);
@@ -220,10 +170,39 @@ const dbAdapter = {
         }
     },
 
+    async actualizarSede(id, datosActualizados) {
+        if (useFirebase && firestoreDb) {
+            const temp = { ...datosActualizados };
+            delete temp.id;
+            await firestoreDb.collection('sedes').doc(id).update(temp);
+            return { id, ...datosActualizados };
+        } else {
+            const sedes = this.getSedesLocal();
+            const index = sedes.findIndex(s => s.id === id);
+            if (index !== -1) {
+                sedes[index] = { ...sedes[index], ...datosActualizados, id };
+                this.saveSedesLocal(sedes);
+                notificarCambio('sedes', sedes);
+                return sedes[index];
+            }
+            return null;
+        }
+    },
+
+    async eliminarSede(id) {
+        if (useFirebase && firestoreDb) {
+            await firestoreDb.collection('sedes').doc(id).delete();
+        } else {
+            let sedes = this.getSedesLocal();
+            sedes = sedes.filter(s => s.id !== id);
+            this.saveSedesLocal(sedes);
+            notificarCambio('sedes', sedes);
+        }
+    },
+
     // 2. MIEMBROS / ALUMNOS
     async agregarAlumno(alumno) {
         if (useFirebase && firestoreDb) {
-            // Generar ID en Firestore
             const docRef = await firestoreDb.collection('alumnos').add(alumno);
             return { id: docRef.id, ...alumno };
         } else {
@@ -237,7 +216,6 @@ const dbAdapter = {
 
     async actualizarAlumno(id, datosActualizados) {
         if (useFirebase && firestoreDb) {
-            // Eliminar propiedad id si viene adentro para evitar sobreescribir la llave del doc
             const temp = { ...datosActualizados };
             delete temp.id;
             await firestoreDb.collection('alumnos').doc(id).update(temp);
@@ -256,9 +234,7 @@ const dbAdapter = {
     },
 
     async saveAlumnos(listaAlumnosCompleta) {
-        // Método de compatibilidad para sobreescribir masivamente (utilizado en toggles rápidos)
         if (useFirebase && firestoreDb) {
-            // En Firestore escribimos de uno por uno o por lotes (Batch)
             const batch = firestoreDb.batch();
             listaAlumnosCompleta.forEach(alumno => {
                 const docRef = firestoreDb.collection('alumnos').doc(alumno.id);
@@ -270,6 +246,17 @@ const dbAdapter = {
         } else {
             this.saveAlumnosLocal(listaAlumnosCompleta);
             notificarCambio('alumnos', listaAlumnosCompleta);
+        }
+    },
+
+    async eliminarAlumno(id) {
+        if (useFirebase && firestoreDb) {
+            await firestoreDb.collection('alumnos').doc(id).delete();
+        } else {
+            let alumnos = this.getAlumnosLocal();
+            alumnos = alumnos.filter(a => a.id !== id);
+            this.saveAlumnosLocal(alumnos);
+            notificarCambio('alumnos', alumnos);
         }
     },
 
@@ -336,6 +323,5 @@ const dbAdapter = {
     }
 };
 
-// Autoinicializar al cargar la página
 dbAdapter.inicializar();
 window.db = dbAdapter;
