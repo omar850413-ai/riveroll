@@ -30,6 +30,26 @@
     <link rel="apple-touch-icon" href="logo.jpg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Limpiador de Caché PWA Forzado Inline -->
+    <script>
+        if (localStorage.getItem('riveroll_pwa_force_clean_v6') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v6', 'true');
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    for (let r of regs) r.unregister();
+                });
+            }
+            if ('caches' in window) {
+                caches.keys().then(keys => {
+                    for (let k of keys) caches.delete(k);
+                });
+            }
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 500);
+        }
+    </script>
 </head>
     <!-- SECCIÓN DE AUTENTICACIÓN (LOGIN/REGISTRO/RECUPERACIÓN) -->
     <div id="auth-overlay" class="auth-overlay-fullscreen">
