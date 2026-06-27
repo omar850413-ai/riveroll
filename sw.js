@@ -1,11 +1,11 @@
-const CACHE_NAME = 'riveroll-cache-v11';
+const CACHE_NAME = 'riveroll-cache-v12';
 const ASSETS = [
   './',
   './index.html',
   './ticket.html',
   './style.css',
-  './app.js?v=11',
-  './db.js?v=11',
+  './app.js?v=12',
+  './db.js?v=12',
   './logo.jpg'
 ];
 

@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '11.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '11.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '12.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '12.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -376,11 +376,11 @@ function renderAlumnosDrilldown() {
                     <div class="details-grid-text">
                         <p><strong>Fecha de Nacimiento:</strong> ${miembro.fechaNacimiento ? formatearFechaSencilla(miembro.fechaNacimiento) : 'No registrada'}</p>
                         ${esSoccer 
-                            ? `<p><strong>Teléfono Tutor:</strong> <a href="https://wa.me/${miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : '52' + miembro.tutorTelefono}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.tutorTelefono}</a></p>
+                            ? `<p><strong>Teléfono Tutor:</strong> <a href="https://wa.me/${(miembro.tutorTelefono || '').startsWith('52') ? miembro.tutorTelefono : '52' + (miembro.tutorTelefono || '')}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.tutorTelefono || ''}</a></p>
                                <p><strong>Tutor/Responsable:</strong> ${miembro.tutorNombre || '-'}</p>
                                <p><strong>Rama:</strong> ${miembro.rama || 'Mixto'}</p>
                                ${miembro.camiseta ? `<p><strong>Número de Camiseta:</strong> #${miembro.camiseta}</p>` : ''}`
-                            : `<p><strong>Teléfono Suscriptor:</strong> <a href="https://wa.me/${miembro.telefonoSuscriptor.startsWith('52') ? miembro.telefonoSuscriptor : '52' + miembro.telefonoSuscriptor}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.telefonoSuscriptor}</a></p>
+                            : `<p><strong>Teléfono Suscriptor:</strong> <a href="https://wa.me/${(miembro.telefonoSuscriptor || '').startsWith('52') ? miembro.telefonoSuscriptor : '52' + (miembro.telefonoSuscriptor || '')}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.telefonoSuscriptor || ''}</a></p>
                                <p><strong>Contacto de Emergencia:</strong> ${miembro.emergenciaNombre || '-'} (${miembro.emergenciaTelefono || '-'})</p>`
                         }
                     </div>
