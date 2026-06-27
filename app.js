@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '6.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '6.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '7.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '7.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {

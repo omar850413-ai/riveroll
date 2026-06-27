@@ -1,4 +1,4 @@
-const CACHE_NAME = 'riveroll-cache-v6';
+const CACHE_NAME = 'riveroll-cache-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -32,22 +32,30 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  // Ignorar peticiones que no sean GET
+  if (e.request.method !== 'GET') return;
+
+  // Ignorar llamadas de API a Firebase Firestore y Autenticación
+  if (e.request.url.includes('firestore.googleapis.com') || 
+      e.request.url.includes('identitytoolkit.googleapis.com') ||
+      e.request.url.includes('securetoken.googleapis.com') ||
+      e.request.url.includes('googleapis.com')) {
+      return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(e.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+    fetch(e.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(e.request, responseToCache);
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Retornar fallback local offline si se desconecta
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(e.request);
+      })
   );
 });
