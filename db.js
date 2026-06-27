@@ -36,6 +36,8 @@ let firebaseApp = null;
 let firestoreDb = null;
 let useFirebase = false;
 
+let dbCurrentUser = null;
+
 const listeners = {
     sedes: [],
     alumnos: [],
@@ -83,13 +85,29 @@ const dbAdapter = {
     isNubeActiva() {
         return useFirebase;
     },
+    
+    setCurrentUser(user) {
+        dbCurrentUser = user;
+        this.reconectarListenersNube();
+    },
 
     suscribir(coleccion, callback) {
         if (!listeners[coleccion]) return;
         listeners[coleccion].push(callback);
         
         if (useFirebase && firestoreDb) {
-            firestoreDb.collection(coleccion).onSnapshot(snapshot => {
+            let queryRef = firestoreDb.collection(coleccion);
+            
+            // Si el usuario no es superadministrador, filtrar por su userId
+            const esSuperAdmin = dbCurrentUser && dbCurrentUser.email === 'omar850413@gmail.com';
+            if (dbCurrentUser && !esSuperAdmin) {
+                // Filtrar sedes creadas por el usuario
+                if (coleccion === 'sedes' || coleccion === 'transacciones' || coleccion === 'partidos' || coleccion === 'alumnos') {
+                    queryRef = queryRef.where('userId', '==', dbCurrentUser.uid);
+                }
+            }
+            
+            queryRef.onSnapshot(snapshot => {
                 const datos = [];
                 snapshot.forEach(doc => {
                     datos.push({ id: doc.id, ...doc.data() });
@@ -104,10 +122,22 @@ const dbAdapter = {
             });
         } else {
             let datosLocal = [];
-            if (coleccion === 'sedes') datosLocal = this.getSedesLocal();
-            else if (coleccion === 'alumnos') datosLocal = this.getAlumnosLocal();
-            else if (coleccion === 'transacciones') datosLocal = this.getTransaccionesLocal();
-            else if (coleccion === 'partidos') datosLocal = this.getPartidosLocal();
+            const userFilter = (item) => {
+                const esSuperAdmin = dbCurrentUser && dbCurrentUser.email === 'omar850413@gmail.com';
+                if (!dbCurrentUser) return true;
+                if (esSuperAdmin) return true;
+                return item.userId === dbCurrentUser.uid;
+            };
+            
+            if (coleccion === 'sedes') {
+                datosLocal = this.getSedesLocal().filter(userFilter);
+            } else if (coleccion === 'alumnos') {
+                datosLocal = this.getAlumnosLocal().filter(userFilter);
+            } else if (coleccion === 'transacciones') {
+                datosLocal = this.getTransaccionesLocal().filter(userFilter);
+            } else if (coleccion === 'partidos') {
+                datosLocal = this.getPartidosLocal().filter(userFilter);
+            }
             callback(datosLocal);
         }
     },
@@ -156,6 +186,10 @@ const dbAdapter = {
 
     // 1. SEDES
     async agregarSede(sede) {
+        if (dbCurrentUser) {
+            sede.userId = dbCurrentUser.uid;
+        }
+        
         if (useFirebase && firestoreDb) {
             try {
                 const docRef = await firestoreDb.collection('sedes').add(sede);
@@ -222,6 +256,10 @@ const dbAdapter = {
 
     // 2. MIEMBROS / ALUMNOS
     async agregarAlumno(alumno) {
+        if (dbCurrentUser) {
+            alumno.userId = dbCurrentUser.uid;
+        }
+        
         if (useFirebase && firestoreDb) {
             try {
                 const docRef = await firestoreDb.collection('alumnos').add(alumno);

@@ -19,6 +19,7 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <!-- Archivo de Estilos Premium -->
     <link rel="stylesheet" href="style.css">
@@ -30,7 +31,75 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
-<body>
+    <!-- SECCIÓN DE AUTENTICACIÓN (LOGIN/REGISTRO/RECUPERACIÓN) -->
+    <div id="auth-overlay" class="auth-overlay-fullscreen">
+        <div class="auth-card">
+            <div class="auth-logo-wrapper">
+                <img src="logo.jpg" alt="RIVEROLL Logo" class="auth-logo-img">
+                <h1 class="auth-title">RIVEROLL</h1>
+                <p class="auth-subtitle">Control Deportivo Corporativo</p>
+            </div>
+            
+            <!-- PESTAÑAS DE CAMBIO (LOGIN / REGISTRO) -->
+            <div class="auth-tabs" id="auth-tabs-group">
+                <button type="button" class="auth-tab-btn active" id="tab-login" onclick="switchAuthTab('login')">Ingresar</button>
+                <button type="button" class="auth-tab-btn" id="tab-register" onclick="switchAuthTab('register')">Registrarse</button>
+            </div>
+            
+            <!-- FORMULARIO LOGIN -->
+            <form id="form-auth-login" onsubmit="handleAuthLogin(event)" class="auth-form-panel active">
+                <div class="form-group">
+                    <label for="login-email"><i class="fa-solid fa-envelope"></i> Correo Electrónico</label>
+                    <input type="email" id="login-email" class="form-control" required placeholder="correo@ejemplo.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> Contraseña</label>
+                    <div style="position: relative;">
+                        <input type="password" id="login-password" class="form-control" required placeholder="••••••••" style="padding-right: 2.75rem;">
+                        <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility('login-password')">
+                            <i class="fa-solid fa-eye-slash" id="login-password-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-accent btn-full" style="margin-top: 1rem; width: 100%;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                </button>
+                <p class="auth-helper-link" style="text-align: center; margin-top: 1rem;"><a href="#" onclick="switchAuthTab('recover')">¿Olvidaste tu contraseña?</a></p>
+            </form>
+            
+            <!-- FORMULARIO REGISTRO -->
+            <form id="form-auth-register" onsubmit="handleAuthRegister(event)" class="auth-form-panel" style="display: none;">
+                <div class="form-group">
+                    <label for="register-email"><i class="fa-solid fa-envelope"></i> Correo Electrónico</label>
+                    <input type="email" id="register-email" class="form-control" required placeholder="correo@ejemplo.com">
+                </div>
+                <div class="form-group">
+                    <label for="register-password"><i class="fa-solid fa-lock"></i> Contraseña</label>
+                    <div style="position: relative;">
+                        <input type="password" id="register-password" class="form-control" required placeholder="Mínimo 6 caracteres" style="padding-right: 2.75rem;">
+                        <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility('register-password')">
+                            <i class="fa-solid fa-eye-slash" id="register-password-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-accent btn-full" style="margin-top: 1rem; width: 100%;">
+                    <i class="fa-solid fa-user-plus"></i> Crear Cuenta
+                </button>
+            </form>
+            
+            <!-- FORMULARIO RECUPERAR CONTRASEÑA -->
+            <form id="form-auth-recover" onsubmit="handleAuthRecover(event)" class="auth-form-panel" style="display: none;">
+                <div class="form-group">
+                    <label for="recover-email"><i class="fa-solid fa-envelope"></i> Ingresa tu Correo Electrónico</label>
+                    <input type="email" id="recover-email" class="form-control" required placeholder="correo@ejemplo.com">
+                </div>
+                <button type="submit" class="btn btn-accent btn-full" style="margin-top: 1rem; width: 100%;">
+                    <i class="fa-solid fa-paper-plane"></i> Enviar Enlace
+                </button>
+                <p class="auth-helper-link" style="text-align: center; margin-top: 1rem;"><a href="#" onclick="switchAuthTab('login')">Volver al Iniciar Sesión</a></p>
+            </form>
+        </div>
+    </div>
 
     <div class="app-container">
         
@@ -41,9 +110,12 @@
                 <h1 class="corp-title">RIVEROLL</h1>
             </div>
             
-            <div class="header-actions">
+            <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
                 <button class="btn btn-accent" onclick="openAddSedeModal()">
                     <i class="fa-solid fa-circle-plus"></i> Agregar Centro
+                </button>
+                <button class="btn btn-outline" onclick="handleAuthLogout()" title="Cerrar Sesión" style="border-color: var(--color-danger); color: var(--color-danger); padding: 0.5rem 0.75rem; background: rgba(239, 68, 68, 0.02);">
+                    <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
         </header>
@@ -323,14 +395,31 @@
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" id="group-tutor-fields">
                     <div class="form-group">
                         <label for="alumno-tutor" id="label-tutor"><i class="fa-solid fa-user-shield"></i> Tutor / Responsable</label>
-                        <input type="text" id="alumno-tutor" class="form-control" required placeholder="Ej: Carlos Pérez">
+                        <input type="text" id="alumno-tutor" class="form-control" placeholder="Ej: Carlos Pérez">
                     </div>
                     <div class="form-group">
-                        <label for="alumno-telefono"><i class="fa-solid fa-phone"></i> Teléfono Tutor</label>
-                        <input type="tel" id="alumno-telefono" class="form-control" required placeholder="Ej: 5551234567" pattern="[0-9]{10}">
+                        <label for="alumno-telefono" id="label-telefono-tutor"><i class="fa-solid fa-phone"></i> Teléfono Tutor</label>
+                        <input type="tel" id="alumno-telefono" class="form-control" placeholder="Ej: 5551234567" pattern="[0-9]{10}">
+                    </div>
+                </div>
+                
+                <div id="group-gimnasio-extra" style="display: none; margin-bottom: 1.25rem;">
+                    <div class="form-group">
+                        <label for="alumno-telefono-suscriptor"><i class="fa-solid fa-phone"></i> Teléfono del Suscriptor</label>
+                        <input type="tel" id="alumno-telefono-suscriptor" class="form-control" placeholder="Ej: 5559876543" pattern="[0-9]{10}">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="alumno-emergencia-nombre"><i class="fa-solid fa-user-shield"></i> Contacto de Emergencia (Nombre)</label>
+                            <input type="text" id="alumno-emergencia-nombre" class="form-control" placeholder="Ej: Ana Gómez">
+                        </div>
+                        <div class="form-group">
+                            <label for="alumno-emergencia-telefono"><i class="fa-solid fa-phone-flip"></i> Teléfono de Emergencia</label>
+                            <input type="tel" id="alumno-emergencia-telefono" class="form-control" placeholder="Ej: 5557654321" pattern="[0-9]{10}">
+                        </div>
                     </div>
                 </div>
                 

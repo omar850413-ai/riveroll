@@ -26,28 +26,60 @@ let speechRecognitionInstancia = null;
 
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Suscribirse a las colecciones de base de datos híbrida
-    window.db.suscribir('sedes', (nuevasSedes) => {
-        state.sedes = nuevasSedes;
-        renderSedes();
-        actualizarSelectoresFiltros();
-        if (state.activeSedeId) actualizarEncabezadoDetalleSede();
-    });
+    // Inicializar el Listener de Autenticación de Firebase
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            // Usuario conectado
+            state.currentUser = user;
+            state.isSuperAdmin = (user.email === 'omar850413@gmail.com');
+            window.db.setCurrentUser(user);
+            
+            // Ocultar Overlay de Autenticación
+            document.getElementById('auth-overlay').style.display = 'none';
+            
+            // Suscribirse a las colecciones sólo si no se ha hecho
+            if (!state.isSubscribed) {
+                window.db.suscribir('sedes', (nuevasSedes) => {
+                    state.sedes = nuevasSedes;
+                    renderSedes();
+                    actualizarSelectoresFiltros();
+                    if (state.activeSedeId) actualizarEncabezadoDetalleSede();
+                });
 
-    window.db.suscribir('alumnos', (nuevosAlumnos) => {
-        state.alumnos = nuevosAlumnos;
-        if (state.activeSedeId) {
-            renderAlumnosDrilldown();
-            renderPlanillaCobrosSede();
+                window.db.suscribir('alumnos', (nuevosAlumnos) => {
+                    state.alumnos = nuevosAlumnos;
+                    if (state.activeSedeId) {
+                        renderAlumnosDrilldown();
+                        renderPlanillaCobrosSede();
+                    }
+                });
+
+                window.db.suscribir('transacciones', (nuevasTransacciones) => {
+                    state.transacciones = nuevasTransacciones;
+                });
+                
+                state.isSubscribed = true;
+            }
+            
+            actualizarBotonEstadoNube();
+        } else {
+            // Usuario desconectado
+            state.currentUser = null;
+            state.isSuperAdmin = false;
+            state.isSubscribed = false;
+            window.db.setCurrentUser(null);
+            
+            // Limpiar datos
+            state.sedes = [];
+            state.alumnos = [];
+            state.transacciones = [];
+            state.activeSedeId = null;
+            
+            // Mostrar Overlay de Autenticación
+            document.getElementById('auth-overlay').style.display = 'flex';
+            switchAuthTab('login');
         }
     });
-
-    window.db.suscribir('transacciones', (nuevasTransacciones) => {
-        state.transacciones = nuevasTransacciones;
-    });
-
-    // 2. Configurar botón de estado de la nube
-    actualizarBotonEstadoNube();
 });
 
 // --- ACTUALIZAR BOTÓN ESTADO DE LA NUBE ---
@@ -259,10 +291,14 @@ function renderAlumnosDrilldown() {
                     ${avatarHtml}
                     <div class="details-grid-text">
                         <p><strong>Fecha de Nacimiento:</strong> ${miembro.fechaNacimiento ? formatearFechaSencilla(miembro.fechaNacimiento) : 'No registrada'}</p>
-                        <p><strong>Teléfono:</strong> <a href="https://wa.me/${miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : '52' + miembro.tutorTelefono}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.tutorTelefono}</a></p>
-                        <p><strong>${esSoccer ? 'Tutor/Responsable' : 'Contacto de Emergencia'}:</strong> ${miembro.tutorNombre || '-'}</p>
-                        ${esSoccer ? `<p><strong>Rama:</strong> ${miembro.rama || 'Mixto'}</p>` : ''}
-                        ${esSoccer && miembro.camiseta ? `<p><strong>Número de Camiseta:</strong> #${miembro.camiseta}</p>` : ''}
+                        ${esSoccer 
+                            ? `<p><strong>Teléfono Tutor:</strong> <a href="https://wa.me/${miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : '52' + miembro.tutorTelefono}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.tutorTelefono}</a></p>
+                               <p><strong>Tutor/Responsable:</strong> ${miembro.tutorNombre || '-'}</p>
+                               <p><strong>Rama:</strong> ${miembro.rama || 'Mixto'}</p>
+                               ${miembro.camiseta ? `<p><strong>Número de Camiseta:</strong> #${miembro.camiseta}</p>` : ''}`
+                            : `<p><strong>Teléfono Suscriptor:</strong> <a href="https://wa.me/${miembro.telefonoSuscriptor.startsWith('52') ? miembro.telefonoSuscriptor : '52' + miembro.telefonoSuscriptor}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.telefonoSuscriptor}</a></p>
+                               <p><strong>Contacto de Emergencia:</strong> ${miembro.emergenciaNombre || '-'} (${miembro.emergenciaTelefono || '-'})</p>`
+                        }
                     </div>
                     
                     <div style="display: flex; gap: 0.5rem; align-self: center;">
@@ -680,9 +716,18 @@ function enviarRecordatorioWhatsApp(miembroId) {
         return;
     }
     
-    const mensaje = `Hola ${miembro.tutorNombre}, le saludamos de ${Sede.nombre}. Le recordamos amablemente el estado administrativo de su hijo ${miembro.nombre}.\n\n*Detalle de Adeudos:*\n${desgloseText.map(t => `• ${t}`).join('\n')}\n\n*Total Pendiente: $${totalAdeudo}*\n\nLe solicitamos su valioso apoyo para realizar el pago correspondiente mediante transferencia. ¡Muchas gracias por su confianza de siempre!`;
+    let mensaje = '';
+    let targetPhone = '';
     
-    const formattedPhone = miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : `52${miembro.tutorTelefono}`;
+    if (Sede.rubro === 'gym') {
+        targetPhone = miembro.telefonoSuscriptor || '';
+        mensaje = `Hola ${miembro.nombre}, le saludamos de *${Sede.nombre}*. Le recordamos amablemente el estado administrativo de su suscripción.\n\n*Detalle de Adeudos:*\n${desgloseText.map(t => `• ${t}`).join('\n')}\n\n*Total Pendiente: $${totalAdeudo}*\n\nLe solicitamos su valioso apoyo para realizar el pago correspondiente. ¡Muchas gracias por su confianza de siempre!`;
+    } else {
+        targetPhone = miembro.tutorTelefono || '';
+        mensaje = `Hola ${miembro.tutorNombre}, le saludamos de *${Sede.nombre}*. Le recordamos amablemente el estado administrativo de su hijo *${miembro.nombre}*.\n\n*Detalle de Adeudos:*\n${desgloseText.map(t => `• ${t}`).join('\n')}\n\n*Total Pendiente: $${totalAdeudo}*\n\nLe solicitamos su valioso apoyo para realizar el pago correspondiente mediante transferencia. ¡Muchas gracias por su confianza de siempre!`;
+    }
+    
+    const formattedPhone = targetPhone.startsWith('52') ? targetPhone : `52${targetPhone}`;
     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
 }
 
@@ -697,6 +742,11 @@ async function saveAlumno(event) {
     const tutorNombre = document.getElementById('alumno-tutor').value;
     const tutorTelefono = document.getElementById('alumno-telefono').value;
     const camiseta = document.getElementById('alumno-camiseta') ? document.getElementById('alumno-camiseta').value : '';
+    
+    // Campos de Gimnasio
+    const telefonoSuscriptor = document.getElementById('alumno-telefono-suscriptor') ? document.getElementById('alumno-telefono-suscriptor').value : '';
+    const emergenciaNombre = document.getElementById('alumno-emergencia-nombre') ? document.getElementById('alumno-emergencia-nombre').value : '';
+    const emergenciaTelefono = document.getElementById('alumno-emergencia-telefono') ? document.getElementById('alumno-emergencia-telefono').value : '';
     
     // Obtener rama activa de fútbol si existe
     let rama = 'Mixto';
@@ -719,6 +769,12 @@ async function saveAlumno(event) {
         tutorTelefono,
         rama,
         camiseta,
+        
+        // Gimnasio
+        telefonoSuscriptor,
+        emergenciaNombre,
+        emergenciaTelefono,
+        
         foto: state.base64Foto,
         pagos: id ? state.alumnos.find(a => a.id === id).pagos : {
             inscripcion: { status: 'no-pagado', abono: 0 },
@@ -940,11 +996,23 @@ function openAddAlumnoModal() {
     // Adaptar campos visualmente según rubro
     if (esSoccer) {
         document.getElementById('group-futbol-extra').style.display = 'block';
-        document.getElementById('label-tutor').innerHTML = `<i class="fa-solid fa-user-shield"></i> Tutor / Responsable`;
+        document.getElementById('group-tutor-fields').style.display = 'grid';
+        document.getElementById('group-gimnasio-extra').style.display = 'none';
+        
+        document.getElementById('alumno-tutor').required = true;
+        document.getElementById('alumno-telefono').required = true;
+        document.getElementById('alumno-telefono-suscriptor').required = false;
+        
         document.getElementById('alumno-nacimiento').required = true;
     } else {
         document.getElementById('group-futbol-extra').style.display = 'none';
-        document.getElementById('label-tutor').innerHTML = `<i class="fa-solid fa-user-shield"></i> Contacto de Emergencia`;
+        document.getElementById('group-tutor-fields').style.display = 'none';
+        document.getElementById('group-gimnasio-extra').style.display = 'block';
+        
+        document.getElementById('alumno-tutor').required = false;
+        document.getElementById('alumno-telefono').required = false;
+        document.getElementById('alumno-telefono-suscriptor').required = true;
+        
         document.getElementById('alumno-nacimiento').required = false;
     }
     
@@ -969,7 +1037,15 @@ function openEditAlumnoModal(id) {
     
     if (esSoccer) {
         document.getElementById('group-futbol-extra').style.display = 'block';
-        document.getElementById('label-tutor').innerHTML = `<i class="fa-solid fa-user-shield"></i> Tutor / Responsable`;
+        document.getElementById('group-tutor-fields').style.display = 'grid';
+        document.getElementById('group-gimnasio-extra').style.display = 'none';
+        
+        document.getElementById('alumno-tutor').required = true;
+        document.getElementById('alumno-telefono').required = true;
+        document.getElementById('alumno-telefono-suscriptor').required = false;
+        
+        document.getElementById('alumno-tutor').value = alumno.tutorNombre || '';
+        document.getElementById('alumno-telefono').value = alumno.tutorTelefono || '';
         document.getElementById('alumno-camiseta').value = alumno.camiseta || '';
         
         // Poner check al radio
@@ -981,8 +1057,16 @@ function openEditAlumnoModal(id) {
         }
     } else {
         document.getElementById('group-futbol-extra').style.display = 'none';
-        document.getElementById('label-tutor').innerHTML = `<i class="fa-solid fa-user-shield"></i> Contacto de Emergencia`;
-        document.getElementById('alumno-camiseta').value = '';
+        document.getElementById('group-tutor-fields').style.display = 'none';
+        document.getElementById('group-gimnasio-extra').style.display = 'block';
+        
+        document.getElementById('alumno-tutor').required = false;
+        document.getElementById('alumno-telefono').required = false;
+        document.getElementById('alumno-telefono-suscriptor').required = true;
+        
+        document.getElementById('alumno-telefono-suscriptor').value = alumno.telefonoSuscriptor || '';
+        document.getElementById('alumno-emergencia-nombre').value = alumno.emergenciaNombre || '';
+        document.getElementById('alumno-emergencia-telefono').value = alumno.emergenciaTelefono || '';
     }
     
     state.base64Foto = alumno.foto || '';
@@ -1225,10 +1309,19 @@ function enviarComprobanteWhatsApp(miembroId) {
     const ticketUrl = `${origin}/ticket.html?s=${encodeURIComponent(Sede.nombre)}&i=${encodeURIComponent(miembro.nombre)}&c=${encodeURIComponent(ultimoConcepto)}&m=${encodeURIComponent(ultimoMonto)}&f=${encodeURIComponent(fechaActual)}&a=${esAbono}`;
     
     // Redactar mensaje con el enlace directo al comprobante
-    const mensaje = `Hola ${miembro.tutorNombre}, le saludamos de *${Sede.nombre}*. Adjuntamos el comprobante oficial de pago para su hijo *${miembro.nombre}*:\n\n👉 *Ver Ticket Digital:* ${ticketUrl}\n\n¡Le agradecemos enormemente su pago puntual y la confianza brindada a nuestra institución!`;
+    let mensaje = '';
+    let targetPhone = '';
+    
+    if (Sede.rubro === 'gym') {
+        targetPhone = miembro.telefonoSuscriptor || '';
+        mensaje = `Hola ${miembro.nombre}, le saludamos de *${Sede.nombre}*. Adjuntamos el comprobante oficial de pago para su suscripción:\n\n👉 *Ver Ticket Digital:* ${ticketUrl}\n\n¡Le agradecemos enormemente su pago puntual y la confianza brindada a nuestra institución!`;
+    } else {
+        targetPhone = miembro.tutorTelefono || '';
+        mensaje = `Hola ${miembro.tutorNombre}, le saludamos de *${Sede.nombre}*. Adjuntamos el comprobante oficial de pago para su hijo *${miembro.nombre}*:\n\n👉 *Ver Ticket Digital:* ${ticketUrl}\n\n¡Le agradecemos enormemente su pago puntual y la confianza brindada a nuestra institución!`;
+    }
     
     // Abrir chat de WhatsApp
-    const formattedPhone = miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : `52${miembro.tutorTelefono}`;
+    const formattedPhone = targetPhone.startsWith('52') ? targetPhone : `52${targetPhone}`;
     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
 }
 
@@ -1239,4 +1332,102 @@ if ('serviceWorker' in navigator) {
             .then(reg => console.log('Service Worker registrado con éxito como PWA.'))
             .catch(err => console.warn('Error al registrar Service Worker PWA:', err));
     });
+}
+
+// --- METODOS DE AUTENTICACION DE USUARIOS (FIREBASE AUTH) ---
+function switchAuthTab(tab) {
+    // Ocultar todos los paneles
+    document.getElementById('form-auth-login').style.display = 'none';
+    document.getElementById('form-auth-register').style.display = 'none';
+    document.getElementById('form-auth-recover').style.display = 'none';
+    
+    // Desactivar botones de pestañas
+    document.getElementById('tab-login').classList.remove('active');
+    document.getElementById('tab-register').classList.remove('active');
+    
+    if (tab === 'login') {
+        document.getElementById('form-auth-login').style.display = 'block';
+        document.getElementById('tab-login').classList.add('active');
+        document.getElementById('auth-tabs-group').style.display = 'flex';
+    } else if (tab === 'register') {
+        document.getElementById('form-auth-register').style.display = 'block';
+        document.getElementById('tab-register').classList.add('active');
+        document.getElementById('auth-tabs-group').style.display = 'flex';
+    } else if (tab === 'recover') {
+        document.getElementById('form-auth-recover').style.display = 'block';
+        document.getElementById('auth-tabs-group').style.display = 'none'; // ocultar pestañas en recuperación
+    }
+}
+
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const eyeIcon = document.getElementById(inputId + '-eye');
+    if (!input || !eyeIcon) return;
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
+    } else {
+        input.type = 'password';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+    }
+}
+
+async function handleAuthLogin(event) {
+    event.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-password').value;
+    
+    try {
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+    } catch (error) {
+        console.error("Error al iniciar sesión:", error);
+        let errorMsg = "Credenciales incorrectas. Verifica tu correo y contraseña.";
+        if (error.code === "auth/user-not-found") errorMsg = "Este usuario no existe.";
+        if (error.code === "auth/wrong-password") errorMsg = "Contraseña incorrecta.";
+        alert("Error de Inicio de Sesión: " + errorMsg);
+    }
+}
+
+async function handleAuthRegister(event) {
+    event.preventDefault();
+    const email = document.getElementById('register-email').value;
+    const pass = document.getElementById('register-password').value;
+    
+    if (pass.length < 6) {
+        alert("La contraseña debe tener mínimo 6 caracteres.");
+        return;
+    }
+    
+    try {
+        await firebase.auth().createUserWithEmailAndPassword(email, pass);
+        alert("Cuenta creada con éxito.");
+    } catch (error) {
+        console.error("Error al registrar usuario:", error);
+        let errorMsg = error.message;
+        if (error.code === "auth/email-already-in-use") errorMsg = "Este correo ya está registrado por otra cuenta.";
+        alert("Error de Registro: " + errorMsg);
+    }
+}
+
+async function handleAuthRecover(event) {
+    event.preventDefault();
+    const email = document.getElementById('recover-email').value;
+    
+    try {
+        await firebase.auth().sendPasswordResetEmail(email);
+        alert("¡Enlace de recuperación enviado!\n\nRevisa tu bandeja de entrada o correo no deseado.");
+        switchAuthTab('login');
+    } catch (error) {
+        console.error("Error al recuperar contraseña:", error);
+        alert("Error: No se pudo enviar el correo. Revisa si el email es correcto.");
+    }
+}
+
+function handleAuthLogout() {
+    if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+        firebase.auth().signOut();
+    }
 }
