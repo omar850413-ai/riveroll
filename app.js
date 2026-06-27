@@ -247,24 +247,32 @@ function switchSedeView(viewId) {
     
     const btnMiembros = document.getElementById('subtab-miembros-btn');
     const btnConta = document.getElementById('subtab-contabilidad-btn');
+    const btnTotales = document.getElementById('subtab-totales-btn');
     
     const sede = state.sedes.find(s => s.id === state.activeSedeId);
     const esSoccer = sede ? sede.rubro === 'soccer' : true;
     
+    // Resetear clases
+    btnMiembros.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+    btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+    btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+    
+    // Ocultar todos los subpaneles
+    document.getElementById('sub-panel-miembros').style.display = 'none';
+    document.getElementById('sub-panel-contabilidad').style.display = 'none';
+    document.getElementById('sub-panel-totales').style.display = 'none';
+    
     if (viewId === 'miembros') {
         btnMiembros.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
-        btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
-        
         document.getElementById('sub-panel-miembros').style.display = 'block';
-        document.getElementById('sub-panel-contabilidad').style.display = 'none';
         renderAlumnosDrilldown();
-    } else {
+    } else if (viewId === 'contabilidad') {
         btnConta.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
-        btnMiembros.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
-        
-        document.getElementById('sub-panel-miembros').style.display = 'none';
         document.getElementById('sub-panel-contabilidad').style.display = 'block';
         renderPlanillaCobrosSede();
+    } else if (viewId === 'totales') {
+        btnTotales.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+        document.getElementById('sub-panel-totales').style.display = 'block';
         renderResumenFinanzas();
         renderEgresosLista();
     }
@@ -1229,61 +1237,181 @@ function imprimirTicketDigital() {
     window.print();
 }
 
-function abrirVistaPreviaReporte() {
+function abrirVistaPreviaReporte(tipo = 'planilla') {
     const Sede = state.sedes.find(s => s.id === state.activeSedeId);
     if (!Sede) return;
     
-    const miembrosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
-    
     // Rellenar encabezados
     document.getElementById('reporte-sede-nombre').innerText = Sede.nombre;
-    document.getElementById('reporte-sede-rubro-pago').innerText = `Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : Sede.rubro === 'gym' ? 'Gimnasio' : Sede.rubro} | Rango de Pago: ${Sede.fechaCorte || '1 al 5 de cada mes'}`;
+    document.getElementById('reporte-sede-rubro-pago').innerText = `Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : 'Gimnasio/Otros'} | Rango de Pago: ${Sede.fechaCorte || '1 al 5 de cada mes'}`;
     document.getElementById('reporte-fecha-actual').innerText = formatearFechaSencilla(obtenerFechaActualStr());
     
     const logoImg = document.getElementById('reporte-sede-logo');
     logoImg.src = Sede.logo || "logo.jpg";
     
-    const tbody = document.getElementById('reporte-print-tbody');
-    tbody.innerHTML = '';
+    const printContent = document.getElementById('reporte-print-content');
     
-    if (miembrosSede.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 1rem;">No hay integrantes registrados.</td></tr>`;
-    } else {
-        miembrosSede.forEach(miembro => {
-            const tr = document.createElement('tr');
-            
-            const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
-            const pMayo = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-05']);
-            const pJunio = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-06']);
-            
-            tr.innerHTML = `
-                <td style="padding: 0.75rem; font-weight: bold; border-bottom: 1px solid #eee;">
-                    ${miembro.nombre}
-                    ${Sede.rubro === 'soccer' ? `<small style="display:block; color: #555;">Cat: ${miembro.categoria}</small>` : ''}
-                </td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pInsc.status === 'pagado' ? '#10b981' : pInsc.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
-                    ${pInsc.texto}
-                </td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pMayo.status === 'pagado' ? '#10b981' : pMayo.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
-                    ${pMayo.texto}
-                </td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pJunio.status === 'pagado' ? '#10b981' : pJunio.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
-                    ${pJunio.texto}
-                </td>
-            `;
-            tbody.appendChild(tr);
+    // Guardar contenedor de la tabla dinámica
+    let bodyHtml = '';
+    
+    if (tipo === 'planilla') {
+        const miembrosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
+        
+        let filas = '';
+        if (miembrosSede.length === 0) {
+            filas = `<tr><td colspan="4" style="text-align: center; padding: 1rem; color: #555;">No hay integrantes registrados.</td></tr>`;
+        } else {
+            miembrosSede.forEach(miembro => {
+                const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
+                const pMayo = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-05']);
+                const pJunio = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-06']);
+                
+                filas += `
+                    <tr>
+                        <td style="padding: 0.75rem; font-weight: bold; border-bottom: 1px solid #eee; color: #000;">
+                            ${miembro.nombre}
+                            ${Sede.rubro === 'soccer' ? `<small style="display:block; color: #555;">Cat: ${miembro.categoria}</small>` : ''}
+                        </td>
+                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pInsc.status === 'pagado' ? '#10b981' : pInsc.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
+                            ${pInsc.texto}
+                        </td>
+                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pMayo.status === 'pagado' ? '#10b981' : pMayo.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
+                            ${pMayo.texto}
+                        </td>
+                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pJunio.status === 'pagado' ? '#10b981' : pJunio.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
+                            ${pJunio.texto}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        
+        bodyHtml = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
+                <div>
+                    <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
+                    <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : 'Gimnasio/Otros'} | Rango de Pago: ${Sede.fechaCorte || '1 al 5 de cada mes'}</p>
+                </div>
+                <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+            </div>
+            <h4 style="margin-bottom: 1rem; font-weight: bold; text-transform: uppercase; color: #000;">Control de Cobros y Mensualidades</h4>
+            <table style="width: 100%; border-collapse: collapse; color: #000;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #000; text-align: left;">
+                        <th style="padding: 0.5rem; color: #000;">Integrante</th>
+                        <th style="padding: 0.5rem; color: #000;">Inscripción</th>
+                        <th style="padding: 0.5rem; color: #000;">Mayo</th>
+                        <th style="padding: 0.5rem; color: #000;">Junio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas}
+                </tbody>
+            </table>
+            <div style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-size: 0.8rem; color: #666; text-align: center;">
+                Reporte de cobros generado el ${formatearFechaSencilla(obtenerFechaActualStr())}. Corporativo Riveroll.
+            </div>
+        `;
+    } else if (tipo === 'totales') {
+        const txsSede = state.transacciones.filter(t => t.sedeId === state.activeSedeId);
+        let totalIngresos = 0;
+        let totalEgresos = 0;
+
+        txsSede.forEach(t => {
+            const monto = parseFloat(t.monto) || 0;
+            if (t.tipo === 'ingresos' || t.tipo === 'ingreso') totalIngresos += monto;
+            else if (t.tipo === 'egresos' || t.tipo === 'egreso') totalEgresos += monto;
         });
+
+        const balanceNeto = totalIngresos - totalEgresos;
+        const egresosSede = txsSede.filter(t => t.tipo === 'egreso' || t.tipo === 'egresos');
+        
+        let egresosFilas = '';
+        if (egresosSede.length === 0) {
+            egresosFilas = `<tr><td colspan="3" style="text-align: center; padding: 1rem; color: #555;">No hay egresos registrados.</td></tr>`;
+        } else {
+            egresosSede.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            egresosSede.forEach(eg => {
+                egresosFilas += `
+                    <tr>
+                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; color: #000; font-weight: bold;">${eg.descripcion}</td>
+                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; color: #555;">${formatearFechaSencilla(eg.fecha)}</td>
+                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; color: #ef4444; font-weight: bold;">-$${eg.monto.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        bodyHtml = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
+                <div>
+                    <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
+                    <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : 'Gimnasio/Otros'} | Resumen de Totales</p>
+                </div>
+                <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+            </div>
+            
+            <h4 style="margin-bottom: 1rem; font-weight: bold; text-transform: uppercase; color: #000;">Balance de Caja y Totales</h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; color: #000;">
+                <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
+                    <div style="font-size: 0.75rem; color: #666; font-weight: bold; text-transform: uppercase;">Ingresos Totales</div>
+                    <div style="font-size: 1.4rem; font-weight: 900; color: #10b981; margin-top: 0.25rem;">$${totalIngresos.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+                </div>
+                <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px;">
+                    <div style="font-size: 0.75rem; color: #666; font-weight: bold; text-transform: uppercase;">Egresos Totales</div>
+                    <div style="font-size: 1.4rem; font-weight: 900; color: #ef4444; margin-top: 0.25rem;">$${totalEgresos.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+                </div>
+                <div style="border: 1px solid #ddd; padding: 1rem; border-radius: 8px; background: #f9fafb;">
+                    <div style="font-size: 0.75rem; color: #666; font-weight: bold; text-transform: uppercase;">Balance Neto</div>
+                    <div style="font-size: 1.4rem; font-weight: 900; color: ${balanceNeto < 0 ? '#ef4444' : '#1e3a8a'}; margin-top: 0.25rem;">$${balanceNeto.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+                </div>
+            </div>
+            
+            <h4 style="margin-bottom: 1rem; font-weight: bold; text-transform: uppercase; color: #000;">Historial Detallado de Egresos</h4>
+            <table style="width: 100%; border-collapse: collapse; color: #000;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #000; text-align: left;">
+                        <th style="padding: 0.5rem; color: #000;">Concepto / Profesor</th>
+                        <th style="padding: 0.5rem; color: #000;">Fecha</th>
+                        <th style="padding: 0.5rem; color: #000;">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${egresosFilas}
+                </tbody>
+            </table>
+            <div style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-size: 0.8rem; color: #666; text-align: center;">
+                Reporte de totales generado el ${formatearFechaSencilla(obtenerFechaActualStr())}. Corporativo Riveroll.
+            </div>
+        `;
     }
     
+    printContent.innerHTML = bodyHtml;
     document.getElementById('modal-reporte-print').classList.add('active');
 }
 
-function imprimirDescargarReportePDF() {
-    // Abrir la vista previa y disparar la ventana de impresión/guardar PDF de inmediato
-    abrirVistaPreviaReporte();
-    setTimeout(() => {
-        window.print();
-    }, 300);
+function descargarReportePDF(tipo = 'planilla') {
+    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (!Sede) return;
+    
+    // Primero preparamos el reporte en el modal
+    abrirVistaPreviaReporte(tipo);
+    
+    // Generar el PDF directamente con html2pdf
+    const element = document.getElementById('reporte-print-content');
+    const opt = {
+        margin:       [0.4, 0.4, 0.4, 0.4],
+        filename:     `Reporte_${tipo === 'planilla' ? 'Cobros' : 'Finanzas'}_${Sede.nombre.replace(/\s+/g, '_')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, backgroundColor: '#ffffff', logging: false },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    // Ejecutar la conversión y descarga de forma fluida
+    html2pdf().set(opt).from(element).save().then(() => {
+        console.log("PDF generado y descargado con éxito.");
+    });
 }
 
 function enviarComprobanteWhatsApp(miembroId) {

@@ -21,6 +21,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
+    <!-- Librería html2pdf para descargar y compartir directamente PDFs sin imprimir -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <!-- Archivo de Estilos Premium -->
     <link rel="stylesheet" href="style.css">
     
@@ -185,7 +188,10 @@
                         <i class="fa-solid fa-users"></i> Miembros / Alumnos
                     </button>
                     <button id="subtab-contabilidad-btn" class="sub-tab-btn soccer" onclick="switchSedeView('contabilidad')">
-                        <i class="fa-solid fa-wallet"></i> Finanzas
+                        <i class="fa-solid fa-receipt"></i> Planilla de Cobros
+                    </button>
+                    <button id="subtab-totales-btn" class="sub-tab-btn soccer" onclick="switchSedeView('totales')">
+                        <i class="fa-solid fa-wallet"></i> Totales
                     </button>
                 </div>
                 
@@ -196,35 +202,17 @@
                     </div>
                 </div>
                 
-                <!-- Sub-Panel: Cobros y Contabilidad (3 Estados con Abono Morado) -->
+                <!-- Sub-Panel: Planilla de Cobros (Pestaña 2) -->
                 <div id="sub-panel-contabilidad" class="sede-sub-view" style="display: none;">
-                    
-                    <!-- RESUMEN FINANCIERO (TARJETAS DE INGRESO, EGRESO Y BALANCE) -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                        <div class="glass-panel" style="border-left: 5px solid var(--color-primary); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-arrow-down-long"></i> Ingresos Totales</span>
-                            <span id="finanzas-total-ingresos" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: #fff;">$0.00</span>
-                        </div>
-                        <div class="glass-panel" style="border-left: 5px solid var(--color-gym); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-arrow-up-long"></i> Egresos Totales</span>
-                            <span id="finanzas-total-egresos" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: #fff;">$0.00</span>
-                        </div>
-                        <div class="glass-panel" style="border-left: 5px solid var(--color-accent); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-scale-balanced"></i> Balance Neto</span>
-                            <span id="finanzas-balance-neto" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: var(--color-accent);">$0.00</span>
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 1: PLANILLA DE COBROS -->
-                    <div class="glass-panel" style="margin-bottom: 2rem;">
+                    <div class="glass-panel">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                             <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;"><i class="fa-solid fa-receipt"></i> Planilla de Cobros (Ingresos)</h3>
                             <div style="display: flex; gap: 0.75rem;">
-                                <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte()" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.02);">
-                                    <i class="fa-solid fa-eye"></i> Vista Previa PDF
+                                <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('planilla')" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.02);">
+                                    <i class="fa-solid fa-eye"></i> Vista Previa
                                 </button>
-                                <button class="btn btn-primary btn-sm" onclick="imprimirDescargarReportePDF()" style="background: #0ea5e9; color: #000; font-weight: 700;">
-                                    <i class="fa-solid fa-file-pdf"></i> Descargar PDF
+                                <button class="btn btn-primary btn-sm" onclick="descargarReportePDF('planilla')" style="background: #0ea5e9; color: #000; font-weight: 700;">
+                                    <i class="fa-solid fa-share-nodes"></i> Compartir / Descargar PDF
                                 </button>
                             </div>
                         </div>
@@ -246,9 +234,42 @@
                             </table>
                         </div>
                     </div>
+                </div>
 
-                    <!-- SECCIÓN 2: CONTROL DE EGRESOS (PAGO A PROFESORES/INSTRUCTORES) -->
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;" id="egresos-section-layout">
+                <!-- Sub-Panel: Totales y Egresos (Pestaña 3) -->
+                <div id="sub-panel-totales" class="sede-sub-view" style="display: none;">
+                    
+                    <!-- ENCABEZADO ACCIONES FINANCIERAS -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;"><i class="fa-solid fa-wallet"></i> Resumen de Caja y Totales</h3>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('totales')" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.02);">
+                                <i class="fa-solid fa-eye"></i> Vista Previa
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="descargarReportePDF('totales')" style="background: #0ea5e9; color: #000; font-weight: 700;">
+                                <i class="fa-solid fa-share-nodes"></i> Compartir / Descargar PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TARJETAS DE INGRESO, EGRESO Y BALANCE -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                        <div class="glass-panel" style="border-left: 5px solid var(--color-primary); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-arrow-down-long"></i> Ingresos Totales</span>
+                            <span id="finanzas-total-ingresos" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: #fff;">$0.00</span>
+                        </div>
+                        <div class="glass-panel" style="border-left: 5px solid var(--color-gym); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-arrow-up-long"></i> Egresos Totales</span>
+                            <span id="finanzas-total-egresos" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: #fff;">$0.00</span>
+                        </div>
+                        <div class="glass-panel" style="border-left: 5px solid var(--color-accent); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-scale-balanced"></i> Balance Neto</span>
+                            <span id="finanzas-balance-neto" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: var(--color-accent);">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- CONTROL DE EGRESOS (PAGO A PROFESORES/INSTRUCTORES) -->
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
                         <!-- Registrar Egreso Formulario -->
                         <div class="glass-panel">
                             <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin-bottom: 1.5rem;"><i class="fa-solid fa-money-bill-transfer"></i> Registrar Pago / Egreso</h3>
@@ -289,7 +310,6 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
                     </div>
                 </div>
             </section>
