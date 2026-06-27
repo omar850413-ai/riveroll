@@ -279,7 +279,6 @@ function actualizarEncabezadoDetalleSede() {
 
 function switchSedeView(viewId) {
     try {
-        alert("JS switchSedeView ejecutándose con: " + viewId);
         state.activeSedeSubView = viewId;
         
         const btnMiembros = document.getElementById('subtab-miembros-btn');
@@ -324,6 +323,7 @@ function switchSedeView(viewId) {
             renderTrabajadoresGrid();
         }
     } catch (e) {
+        alert("ERROR en switchSedeView: " + e.message + "\nStack: " + e.stack);
         console.error("Error en switchSedeView:", e);
     }
 }
