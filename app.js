@@ -4,6 +4,26 @@
  * ciclo de cobros en tres estados con abonos morados, y WhatsApp dinámico.
  */
 
+// --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '6.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '6.0');
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (let registration of registrations) {
+                registration.unregister();
+            }
+        });
+    }
+    if ('caches' in window) {
+        caches.keys().then(names => {
+            for (let name of names) caches.delete(name);
+        });
+    }
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
 // --- ESTADO GLOBAL DE LA APLICACIÓN ---
 const state = {
     activeSedeId: null,      // Sede actualmente seleccionada en drill-down
@@ -719,7 +739,7 @@ function enviarRecordatorioWhatsApp(miembroId) {
     let mensaje = '';
     let targetPhone = '';
     
-    if (Sede.rubro === 'gym') {
+    if (Sede.rubro !== 'soccer') {
         targetPhone = miembro.telefonoSuscriptor || '';
         mensaje = `Hola ${miembro.nombre}, le saludamos de *${Sede.nombre}*. Le recordamos amablemente el estado administrativo de su suscripción.\n\n*Detalle de Adeudos:*\n${desgloseText.map(t => `• ${t}`).join('\n')}\n\n*Total Pendiente: $${totalAdeudo}*\n\nLe solicitamos su valioso apoyo para realizar el pago correspondiente. ¡Muchas gracias por su confianza de siempre!`;
     } else {
@@ -1312,7 +1332,7 @@ function enviarComprobanteWhatsApp(miembroId) {
     let mensaje = '';
     let targetPhone = '';
     
-    if (Sede.rubro === 'gym') {
+    if (Sede.rubro !== 'soccer') {
         targetPhone = miembro.telefonoSuscriptor || '';
         mensaje = `Hola ${miembro.nombre}, le saludamos de *${Sede.nombre}*. Adjuntamos el comprobante oficial de pago para su suscripción:\n\n👉 *Ver Ticket Digital:* ${ticketUrl}\n\n¡Le agradecemos enormemente su pago puntual y la confianza brindada a nuestra institución!`;
     } else {

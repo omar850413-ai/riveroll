@@ -1,4 +1,4 @@
-const CACHE_NAME = 'riveroll-cache-v5';
+const CACHE_NAME = 'riveroll-cache-v6';
 const ASSETS = [
   './',
   './index.html',
