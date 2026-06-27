@@ -1,16 +1,30 @@
 /**
  * db.js - Adaptador Híbrido de Persistencia (Local / Firebase Firestore)
  * Versión de Producción Limpia (Sin Datos Demo).
- * Soporta registro de logotipos de sedes, fechas de corte, y el mapa de pagos con abonos.
+ * Conexión automática silenciosa con Firebase (Credenciales Hardcodeadas).
  */
 
 const STORAGE_KEYS = {
-    CONFIG_NUBE: 'riveroll_firebase_config_v3',
     SEDES: 'riveroll_sedes_v3',
     ALUMNOS: 'riveroll_alumnos_v3',
     TRANSACCIONES: 'riveroll_transacciones_v3',
     PARTIDOS: 'riveroll_partidos_v3'
 };
+
+// =========================================================================
+// CONFIGURACIÓN DE FIREBASE: PEGA TUS CREDENCIALES AQUÍ ADENTRO
+// La aplicación se conectará automáticamente de forma silenciosa.
+// =========================================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyAJ5XGT4ngzGcJLgLD3QqjLpNSzZFygcAE",
+    authDomain: "ai-lef.firebaseapp.com",
+    projectId: "ai-lef",
+    storageBucket: "ai-lef.firebasestorage.app",
+    messagingSenderId: "427833296481",
+    appId: "1:427833296481:web:c19fbdabaacac4de274c20",
+    measurementId: "G-555Y1BCC07"
+};
+// =========================================================================
 
 // Datos Semilla de Producción (Vacíos por defecto)
 const SEMILLA_SEDES = [];
@@ -37,24 +51,23 @@ function notificarCambio(coleccion, datos) {
 
 const dbAdapter = {
     inicializar() {
-        const configStr = localStorage.getItem(STORAGE_KEYS.CONFIG_NUBE);
-        if (configStr) {
+        // Validar si las credenciales fueron incrustadas
+        const estaConfigurado = firebaseConfig.projectId && !firebaseConfig.projectId.startsWith("PEGA_AQUI_");
+        
+        if (estaConfigurado) {
             try {
-                const config = JSON.parse(configStr);
-                this.conectarFirebase(config);
+                this.conectarFirebase(firebaseConfig);
             } catch (e) {
-                console.error("Error al cargar configuración de Firebase:", e);
+                console.error("Error al inicializar Firebase Firestore:", e);
                 useFirebase = false;
             }
         } else {
+            console.warn("⚠️ Firebase no configurado en db.js. Usando almacenamiento local temporal.");
             useFirebase = false;
         }
     },
 
     conectarFirebase(config) {
-        if (!config || !config.apiKey || !config.projectId) {
-            throw new Error("Credenciales de Firebase incompletas.");
-        }
         if (firebase.apps.length > 0) {
             firebaseApp = firebase.app();
         } else {
@@ -62,28 +75,13 @@ const dbAdapter = {
         }
         firestoreDb = firebaseApp.firestore();
         useFirebase = true;
-        localStorage.setItem(STORAGE_KEYS.CONFIG_NUBE, JSON.stringify(config));
+        console.log("🔥 Conexión en la nube activada automáticamente.");
         this.reconectarListenersNube();
         return true;
     },
 
-    desconectarFirebase() {
-        localStorage.removeItem(STORAGE_KEYS.CONFIG_NUBE);
-        useFirebase = false;
-        firestoreDb = null;
-        notificarCambio('sedes', this.getSedesLocal());
-        notificarCambio('alumnos', this.getAlumnosLocal());
-        notificarCambio('transacciones', this.getTransaccionesLocal());
-        notificarCambio('partidos', this.getPartidosLocal());
-    },
-
     isNubeActiva() {
         return useFirebase;
-    },
-
-    obtenerConfigActual() {
-        const configStr = localStorage.getItem(STORAGE_KEYS.CONFIG_NUBE);
-        return configStr ? JSON.parse(configStr) : null;
     },
 
     suscribir(coleccion, callback) {
