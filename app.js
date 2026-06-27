@@ -1179,20 +1179,20 @@ function enviarComprobanteWhatsApp(miembroId) {
     // 1. Inscripción
     const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
     if (pInsc.status === 'pagado') {
-        desgloseText.push(`• Inscripción: LIQUIDADO ($${Sede.inscripcion})`);
+        desgloseText.push(`Inscripcion: LIQUIDADO ($${Sede.inscripcion})`);
     } else if (pInsc.status === 'abonado') {
         const abono = miembro.pagos.inscripcion.abono || 0;
-        desgloseText.push(`• Inscripción: ABONÓ $${abono} de $${Sede.inscripcion} (Restante: $${Sede.inscripcion - abono})`);
+        desgloseText.push(`Inscripcion: ABONO $${abono} (Resta $${Sede.inscripcion - abono})`);
     }
     
     // 2. Mensualidades
     Object.entries(miembro.pagos.mensualidades).forEach(([mes, valor]) => {
         const pMes = obtenerEstatusPagoObjeto(valor);
         if (pMes.status === 'pagado') {
-            desgloseText.push(`• Mensualidad ${obtenerNombreMes(mes)}: LIQUIDADO ($${Sede.mensualidad})`);
+            desgloseText.push(`${obtenerNombreMes(mes)}: LIQUIDADO ($${Sede.mensualidad})`);
         } else if (pMes.status === 'abonado') {
             const abono = valor.abono || 0;
-            desgloseText.push(`• Mensualidad ${obtenerNombreMes(mes)}: ABONÓ $${abono} de $${Sede.mensualidad} (Restante: $${Sede.mensualidad - abono})`);
+            desgloseText.push(`${obtenerNombreMes(mes)}: ABONO $${abono} (Resta $${Sede.mensualidad - abono})`);
         }
     });
     
@@ -1201,8 +1201,100 @@ function enviarComprobanteWhatsApp(miembroId) {
         return;
     }
     
-    const mensaje = `Hola ${miembro.tutorNombre}, le saludamos de *${Sede.nombre}*. Adjuntamos el comprobante oficial de pagos registrados para su hijo *${miembro.nombre}* a la fecha ${formatearFechaSencilla(obtenerFechaActualStr())}.\n\n*Detalle de Comprobantes:*\n${desgloseText.join('\n')}\n\n¡Le agradecemos enormemente su pago puntual y la confianza brindada a nuestra institución!`;
+    // --- GENERAR TICKET EN CANVAS DE FORMA DINÁMICA ---
+    const canvas = document.createElement('canvas');
+    canvas.width = 450;
+    canvas.height = 200 + (desgloseText.length * 35);
+    const ctx = canvas.getContext('2d');
     
-    const formattedPhone = miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : `52${miembro.tutorTelefono}`;
-    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
+    // Fondo Blanco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Bordes decorativos estilo ticket
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+    
+    ctx.strokeStyle = '#9ca3af';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+    ctx.setLineDash([]);
+    
+    // Título de la Sede/Centro
+    ctx.fillStyle = '#111827';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 20px Courier New';
+    ctx.fillText(Sede.nombre.toUpperCase(), canvas.width / 2, 60);
+    
+    ctx.font = '12px Courier New';
+    ctx.fillStyle = '#4b5563';
+    ctx.fillText("COMPROBANTE OFICIAL DE PAGO", canvas.width / 2, 85);
+    
+    // Separador
+    ctx.strokeStyle = '#9ca3af';
+    ctx.beginPath();
+    ctx.moveTo(30, 105);
+    ctx.lineTo(canvas.width - 30, 105);
+    ctx.stroke();
+    
+    // Información General
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#111827';
+    ctx.font = '14px Courier New';
+    
+    let y = 135;
+    ctx.fillText(`FECHA: ${formatearFechaSencilla(obtenerFechaActualStr())}`, 40, y); y += 28;
+    ctx.fillText(`INTEGRANTE: ${miembro.nombre.toUpperCase()}`, 40, y); y += 32;
+    
+    ctx.font = 'bold 14px Courier New';
+    ctx.fillText("DETALLE DE PAGOS:", 40, y); y += 30;
+    
+    // Pagos
+    ctx.font = '14px Courier New';
+    desgloseText.forEach(line => {
+        ctx.fillText(`• ${line}`, 40, y);
+        y += 28;
+    });
+    
+    // Separador final
+    y += 5;
+    ctx.strokeStyle = '#9ca3af';
+    ctx.beginPath();
+    ctx.moveTo(30, y);
+    ctx.lineTo(canvas.width - 30, y);
+    ctx.stroke();
+    
+    // Agradecimiento
+    y += 30;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#111827';
+    ctx.font = 'italic bold 13px Courier New';
+    ctx.fillText("¡Muchas gracias por su confianza!", canvas.width / 2, y);
+    
+    // Convertir canvas a Blob y copiar al portapapeles
+    canvas.toBlob(async (blob) => {
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    [blob.type]: blob
+                })
+            ]);
+            alert("¡Excelente!\n\nEl ticket de pago se ha generado como IMAGEN y copiado automáticamente a tu portapapeles.\n\nAbriendo WhatsApp... solo presiona 'Pegar' (Ctrl+V o mantener presionado para Pegar en celular) en el chat para enviar la imagen.");
+        } catch (err) {
+            console.warn("Clipboard API bloqueada o no soportada. Descargando imagen localmente:", err);
+            alert("Descargando imagen del ticket de pago en tu dispositivo de forma alternativa. Envíala de forma manual por el chat de WhatsApp.");
+            
+            // Descarga alternativa
+            const link = document.createElement('a');
+            link.download = `ticket-${miembro.nombre.replace(/\s+/g, '-')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Abrir chat de WhatsApp
+        const formattedPhone = miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : `52${miembro.tutorTelefono}`;
+        window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}`, '_blank');
+    }, 'image/png');
 }
