@@ -76,6 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 window.db.suscribir('transacciones', (nuevasTransacciones) => {
                     state.transacciones = nuevasTransacciones;
+                    if (state.activeSedeId) {
+                        renderResumenFinanzas();
+                        renderEgresosLista();
+                    }
                 });
                 
                 state.isSubscribed = true;
@@ -261,6 +265,8 @@ function switchSedeView(viewId) {
         document.getElementById('sub-panel-miembros').style.display = 'none';
         document.getElementById('sub-panel-contabilidad').style.display = 'block';
         renderPlanillaCobrosSede();
+        renderResumenFinanzas();
+        renderEgresosLista();
     }
 }
 
@@ -478,7 +484,8 @@ function handlePaymentSingleClick(miembroId, campo) {
                 categoria: campo === 'inscripcion' ? 'Inscripción' : 'Mensualidad',
                 monto: costoSede,
                 descripcion: `Pago completo ${campo === 'inscripcion' ? 'inscripción' : 'mensualidad ' + obtenerNombreMes(campo)} de ${miembro.nombre} (${Sede.nombre})`,
-                fecha: obtenerFechaActualStr()
+                fecha: obtenerFechaActualStr(),
+                sedeId: Sede.id
             });
             
             await guardarPagoModificado(miembroId, campo, actualObj);
@@ -533,7 +540,8 @@ async function guardarAbonoMonto() {
             categoria: campo === 'inscripcion' ? 'Inscripción' : 'Mensualidad',
             monto: costoSede,
             descripcion: `Pago completo ${campo === 'inscripcion' ? 'inscripción' : 'mensualidad ' + obtenerNombreMes(campo)} de ${miembro.nombre} (${Sede.nombre})`,
-            fecha: obtenerFechaActualStr()
+            fecha: obtenerFechaActualStr(),
+            sedeId: Sede.id
         });
         
         await guardarPagoModificado(miembroId, campo, pagoObj);
@@ -547,7 +555,8 @@ async function guardarAbonoMonto() {
             categoria: 'Abono',
             monto: monto,
             descripcion: `Abono parcial para ${campo === 'inscripcion' ? 'inscripción' : 'mensualidad ' + obtenerNombreMes(campo)} de ${miembro.nombre} ($${monto} abonado de $${costoSede})`,
-            fecha: obtenerFechaActualStr()
+            fecha: obtenerFechaActualStr(),
+            sedeId: Sede.id
         });
         
         await guardarPagoModificado(miembroId, campo, pagoObj);
@@ -1449,5 +1458,112 @@ async function handleAuthRecover(event) {
 function handleAuthLogout() {
     if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
         firebase.auth().signOut();
+    }
+}
+
+// --- CONTROL Y REGISTRO DE FINANZAS (INGRESOS, EGRESOS Y BALANCE) ---
+function renderResumenFinanzas() {
+    const totalIngresosEl = document.getElementById('finanzas-total-ingresos');
+    const totalEgresosEl = document.getElementById('finanzas-total-egresos');
+    const balanceNetoEl = document.getElementById('finanzas-balance-neto');
+    if (!totalIngresosEl || !totalEgresosEl || !balanceNetoEl) return;
+
+    // Filtrar transacciones de esta sede
+    const txsSede = state.transacciones.filter(t => t.sedeId === state.activeSedeId);
+
+    let totalIngresos = 0;
+    let totalEgresos = 0;
+
+    txsSede.forEach(t => {
+        const monto = parseFloat(t.monto) || 0;
+        if (t.tipo === 'ingresos' || t.tipo === 'ingreso') {
+            totalIngresos += monto;
+        } else if (t.tipo === 'egresos' || t.tipo === 'egreso') {
+            totalEgresos += monto;
+        }
+    });
+
+    const balanceNeto = totalIngresos - totalEgresos;
+
+    totalIngresosEl.innerText = `$${totalIngresos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    totalEgresosEl.innerText = `$${totalEgresos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    balanceNetoEl.innerText = `$${balanceNeto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    if (balanceNeto < 0) {
+        balanceNetoEl.style.color = '#ef4444'; // Rojo si es negativo
+    } else {
+        balanceNetoEl.style.color = 'var(--color-accent)'; // Amarillo oro si es positivo
+    }
+}
+
+async function registrarEgreso(event) {
+    event.preventDefault();
+    const concepto = document.getElementById('egreso-concepto').value;
+    const monto = parseFloat(document.getElementById('egreso-monto').value) || 0;
+    const fecha = document.getElementById('egreso-fecha').value;
+
+    if (monto <= 0) {
+        alert("El monto debe ser mayor que 0.");
+        return;
+    }
+
+    try {
+        await window.db.agregarTransaccion({
+            id: 't_' + Date.now(),
+            tipo: 'egreso',
+            categoria: 'Pago Profesor',
+            descripcion: concepto,
+            monto: monto,
+            fecha: fecha,
+            sedeId: state.activeSedeId
+        });
+        
+        document.getElementById('form-egreso').reset();
+        alert("Egreso registrado con éxito.");
+    } catch (error) {
+        console.error("Error al registrar egreso:", error);
+        alert("Error al guardar el egreso. Inténtalo de nuevo.");
+    }
+}
+
+function renderEgresosLista() {
+    const tbody = document.getElementById('egresos-lista-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const egresosSede = state.transacciones.filter(t => t.sedeId === state.activeSedeId && (t.tipo === 'egreso' || t.tipo === 'egresos'));
+
+    if (egresosSede.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--color-text-muted); padding: 1.5rem;">No hay egresos registrados en este centro.</td></tr>`;
+        return;
+    }
+
+    // Ordenar por fecha descendente
+    egresosSede.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    egresosSede.forEach(eg => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="color: #fff; font-weight: 600;">${eg.descripcion}</td>
+            <td style="color: var(--color-text-muted);">${formatearFechaSencilla(eg.fecha)}</td>
+            <td style="color: #ef4444; font-weight: 700;">-$${eg.monto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="text-align: center;">
+                <button class="btn btn-danger btn-sm" onclick="eliminarEgreso('${eg.id}')" style="background: rgba(239, 68, 68, 0.15); color: var(--color-danger); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.25rem 0.5rem;">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function eliminarEgreso(transaccionId) {
+    if (confirm("¿Estás seguro de que deseas eliminar este egreso del historial?")) {
+        try {
+            await window.db.eliminarTransaccion(transaccionId);
+        } catch (error) {
+            console.error("Error al eliminar egreso:", error);
+            alert("No se pudo eliminar el egreso.");
+        }
     }
 }

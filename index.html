@@ -185,7 +185,7 @@
                         <i class="fa-solid fa-users"></i> Miembros / Alumnos
                     </button>
                     <button id="subtab-contabilidad-btn" class="sub-tab-btn soccer" onclick="switchSedeView('contabilidad')">
-                        <i class="fa-solid fa-cash-register"></i> Contabilidad y Cobros
+                        <i class="fa-solid fa-wallet"></i> Finanzas
                     </button>
                 </div>
                 
@@ -198,9 +198,27 @@
                 
                 <!-- Sub-Panel: Cobros y Contabilidad (3 Estados con Abono Morado) -->
                 <div id="sub-panel-contabilidad" class="sede-sub-view" style="display: none;">
-                    <div class="glass-panel">
+                    
+                    <!-- RESUMEN FINANCIERO (TARJETAS DE INGRESO, EGRESO Y BALANCE) -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                        <div class="glass-panel" style="border-left: 5px solid var(--color-primary); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-arrow-down-long"></i> Ingresos Totales</span>
+                            <span id="finanzas-total-ingresos" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: #fff;">$0.00</span>
+                        </div>
+                        <div class="glass-panel" style="border-left: 5px solid var(--color-gym); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-arrow-up-long"></i> Egresos Totales</span>
+                            <span id="finanzas-total-egresos" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: #fff;">$0.00</span>
+                        </div>
+                        <div class="glass-panel" style="border-left: 5px solid var(--color-accent); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.8rem; font-weight: bold; color: var(--color-text-muted); text-transform: uppercase;"><i class="fa-solid fa-scale-balanced"></i> Balance Neto</span>
+                            <span id="finanzas-balance-neto" style="font-family: var(--font-title); font-size: 1.8rem; font-weight: 900; color: var(--color-accent);">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 1: PLANILLA DE COBROS -->
+                    <div class="glass-panel" style="margin-bottom: 2rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                            <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;">Planilla de Cobros</h3>
+                            <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;"><i class="fa-solid fa-receipt"></i> Planilla de Cobros (Ingresos)</h3>
                             <div style="display: flex; gap: 0.75rem;">
                                 <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte()" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.02);">
                                     <i class="fa-solid fa-eye"></i> Vista Previa PDF
@@ -208,11 +226,6 @@
                                 <button class="btn btn-primary btn-sm" onclick="imprimirDescargarReportePDF()" style="background: #0ea5e9; color: #000; font-weight: 700;">
                                     <i class="fa-solid fa-file-pdf"></i> Descargar PDF
                                 </button>
-                            </div>
-                            <div style="display: flex; gap: 1rem; font-size: 0.75rem; font-weight: 700;">
-                                <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot adeudo" style="width:10px; height:10px; display:inline-block;"></span> NO PAGADO</span>
-                                <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot pagado" style="width:10px; height:10px; display:inline-block;"></span> PAGADO</span>
-                                <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot" style="background-color: var(--color-abono); width:10px; height:10px; display:inline-block;"></span> ABONADO</span>
                             </div>
                         </div>
                         
@@ -224,13 +237,58 @@
                                         <th>Inscripción</th>
                                         <th>Mayo</th>
                                         <th>Junio (Actual)</th>
-                                        <th style="text-align: center;">Recordatorio</th>
+                                        <th style="text-align: center;">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="planilla-sede-tbody">
                                     <!-- Dinámico -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 2: CONTROL DE EGRESOS (PAGO A PROFESORES/INSTRUCTORES) -->
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;" id="egresos-section-layout">
+                        <!-- Registrar Egreso Formulario -->
+                        <div class="glass-panel">
+                            <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin-bottom: 1.5rem;"><i class="fa-solid fa-money-bill-transfer"></i> Registrar Pago / Egreso</h3>
+                            <form id="form-egreso" onsubmit="registrarEgreso(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="egreso-concepto"><i class="fa-solid fa-tag"></i> Concepto / Nombre Profesor</label>
+                                    <input type="text" id="egreso-concepto" class="form-control" required placeholder="Ej: Pago Prof. Carlos (Fútbol U15)">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="egreso-monto"><i class="fa-solid fa-dollar-sign"></i> Monto ($)</label>
+                                    <input type="number" id="egreso-monto" class="form-control" required placeholder="Ej: 1500" min="0">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="egreso-fecha"><i class="fa-solid fa-calendar"></i> Fecha del Pago</label>
+                                    <input type="date" id="egreso-fecha" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-accent" style="height: 42px;">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i> Registrar Egreso
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Lista de Egresos Registrados -->
+                        <div class="glass-panel">
+                            <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin-bottom: 1.5rem;"><i class="fa-solid fa-list-check"></i> Historial de Egresos</h3>
+                            <div class="table-container">
+                                <table class="accounting-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Concepto / Profesor</th>
+                                            <th>Fecha</th>
+                                            <th>Monto</th>
+                                            <th style="text-align: center;">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="egresos-lista-tbody">
+                                        <!-- Dinámico -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
