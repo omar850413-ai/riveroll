@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corporativo Riveroll - Ligas, Gym & Control Deportivo</title>
+    <title>RIVEROLL - Control Deportivo Corporativo</title>
     
     <!-- SEO Meta Tags -->
     <meta name="description" content="Plataforma premium para el control de academias de fútbol, gimnasios, mensualidades, asistencia a partidos y cobro de arbitraje.">
@@ -16,7 +16,7 @@
     <!-- FontAwesome para Iconos Premium -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDKs (Versión 8.x para compatibilidad global y reactividad directa) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
@@ -27,395 +27,108 @@
 
     <div class="app-container">
         
-        <!-- BARRA LATERAL (SIDEBAR) -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo-icon">R</div>
-                <div class="logo-text">
-                    <h1>RIVEROLL</h1>
-                    <span>Corporativo</span>
-                </div>
+        <!-- ENCABEZADO CORPORATIVO (LOGO Y NOMBRE CENTRAL) -->
+        <header class="corp-header">
+            <div class="corp-logo-wrapper">
+                <img src="logo.jpg" alt="RIVEROLL Logo" class="corp-logo-img">
+                <h1 class="corp-title">RIVEROLL</h1>
             </div>
             
-            <nav class="nav-menu">
-                <li class="nav-item active" data-tab="dashboard">
-                    <button onclick="switchTab('dashboard')">
-                        <i class="fa-solid fa-chart-line"></i>
-                        <span>Dashboard</span>
-                    </button>
-                </li>
-                <li class="nav-item" data-tab="sedes">
-                    <button onclick="switchTab('sedes')">
-                        <i class="fa-solid fa-building-shield"></i>
-                        <span>Sedes y Negocios</span>
-                    </button>
-                </li>
-                <li class="nav-item" data-tab="alumnos">
-                    <button onclick="switchTab('alumnos')">
-                        <i class="fa-solid fa-users"></i>
-                        <span>Miembros / Alumnos</span>
-                    </button>
-                </li>
-                <li class="nav-item" data-tab="partidos">
-                    <button onclick="switchTab('partidos')">
-                        <i class="fa-solid fa-calendar-check"></i>
-                        <span>Control de Partidos</span>
-                    </button>
-                </li>
-                <li class="nav-item" data-tab="pagos">
-                    <button onclick="switchTab('pagos')">
-                        <i class="fa-solid fa-money-bill-transfer"></i>
-                        <span>Planilla de Pagos</span>
-                    </button>
-                </li>
-                <li class="nav-item" data-tab="contabilidad">
-                    <button onclick="switchTab('contabilidad')">
-                        <i class="fa-solid fa-cash-register"></i>
-                        <span>Contabilidad / Caja</span>
-                    </button>
-                </li>
-                <li class="nav-item" data-tab="credenciales">
-                    <button onclick="switchTab('credenciales')">
-                        <i class="fa-solid fa-id-card"></i>
-                        <span>Credenciales QR</span>
-                    </button>
-                </li>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <p>Corporativo Riveroll v2.0</p>
-                <p style="font-size: 0.7rem; opacity: 0.6; margin-top: 0.25rem;">Control Unificado</p>
+            <div class="header-actions">
+                <button class="btn btn-accent" onclick="openAddSedeModal()">
+                    <i class="fa-solid fa-circle-plus"></i> Agregar Centro
+                </button>
+                <button class="btn btn-outline" onclick="openConfigNubeModal()" id="btn-estado-nube">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Conectar Nube
+                </button>
             </div>
-        </aside>
+        </header>
         
         <!-- CONTENIDO PRINCIPAL -->
         <main class="main-content">
             
-            <!-- PANEL: DASHBOARD -->
+            <!-- PANEL 1: DASHBOARD DE NEGOCIOS (INICIO) -->
             <section id="panel-dashboard" class="section-panel active">
                 <div class="content-header">
                     <div>
-                        <h2>Resumen Ejecutivo</h2>
-                        <p>Gestión administrativa de tus academias de fútbol y gimnasios.</p>
-                    </div>
-                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                        <button class="btn btn-outline" onclick="openConfigNubeModal()" id="btn-estado-nube">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> Conectar Nube
-                        </button>
-                        <button class="btn btn-outline" onclick="openAddSedeModal()">
-                            <i class="fa-solid fa-circle-plus"></i> Sede
-                        </button>
-                        <button class="btn btn-primary" onclick="openAddAlumnoModal()">
-                            <i class="fa-solid fa-user-plus"></i> Miembro
-                        </button>
+                        <h2>Centros y Sedes Activas</h2>
+                        <p>Haz clic en cualquiera de tus academias o gimnasios para ingresar al control.</p>
                     </div>
                 </div>
                 
-                <!-- Indicadores Clave (KPIs) -->
-                <div class="kpi-grid">
-                    <div class="glass-panel kpi-card">
-                        <div class="kpi-icon green">
-                            <i class="fa-solid fa-user-graduate"></i>
-                        </div>
-                        <div class="kpi-info">
-                            <h4>Total Alumnos Fútbol</h4>
-                            <p id="kpi-futbol-alumnos">0</p>
-                        </div>
-                    </div>
-                    <div class="glass-panel kpi-card">
-                        <div class="kpi-icon orange">
-                            <i class="fa-solid fa-dumbbell"></i>
-                        </div>
-                        <div class="kpi-info">
-                            <h4>Suscriptores Gym</h4>
-                            <p id="kpi-gym-suscriptores">0</p>
-                        </div>
-                    </div>
-                    <div class="glass-panel kpi-card">
-                        <div class="kpi-icon yellow">
-                            <i class="fa-solid fa-wallet"></i>
-                        </div>
-                        <div class="kpi-info">
-                            <h4>Caja Mensual</h4>
-                            <p id="kpi-ingresos-mes">$0.00</p>
-                        </div>
-                    </div>
-                    <div class="glass-panel kpi-card">
-                        <div class="kpi-icon red">
-                            <i class="fa-solid fa-circle-exclamation"></i>
-                        </div>
-                        <div class="kpi-info">
-                            <h4>Miembros con Adeudo</h4>
-                            <p id="kpi-adeudos-alumnos">0</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Alertas rápidas del Dashboard -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;">
-                    <div class="glass-panel">
-                        <h3 style="font-family: var(--font-title); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fa-solid fa-triangle-exclamation" style="color: var(--color-accent);"></i> Cobros de Mensualidad Pendientes
-                        </h3>
-                        <div id="dashboard-cobros-pendientes" style="display: flex; flex-direction: column; gap: 1rem;">
-                            <!-- Dinámico -->
-                        </div>
-                    </div>
-                    <div class="glass-panel">
-                        <h3 style="font-family: var(--font-title); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fa-solid fa-clock-rotate-left" style="color: var(--color-primary);"></i> Historial Reciente de Caja
-                        </h3>
-                        <div id="dashboard-ultimas-transacciones" style="display: flex; flex-direction: column; gap: 1rem;">
-                            <!-- Dinámico -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- PANEL: SEDES Y NEGOCIOS -->
-            <section id="panel-sedes" class="section-panel">
-                <div class="content-header">
-                    <div>
-                        <h2>Sedes y Negocios</h2>
-                        <p>Agrega y administra los costos de tus academias de fútbol y gimnasios.</p>
-                    </div>
-                    <button class="btn btn-outline" onclick="openAddSedeModal()">
-                        <i class="fa-solid fa-circle-plus"></i> Registrar Sede / Negocio
-                    </button>
-                </div>
-                
-                <!-- Tarjetas de Sedes -->
                 <div id="sedes-grid" class="students-grid">
                     <!-- Dinámico -->
                 </div>
             </section>
             
-            <!-- PANEL: MIEMBROS / ALUMNOS (DIVIDIDO EN DOS SUBPESTAÑAS) -->
-            <section id="panel-alumnos" class="section-panel">
-                <div class="content-header">
-                    <div>
-                        <h2>Control de Alumnos y Suscriptores</h2>
-                        <p>Gestión de miembros asociados a cada negocio del corporativo.</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="openAddAlumnoModal()">
-                        <i class="fa-solid fa-user-plus"></i> Agregar Miembro
+            <!-- PANEL 2: DETALLE DE SEDE / NEGOCIO (DRILL DOWN) -->
+            <section id="panel-detalle-sede" class="section-panel">
+                <div class="content-header" style="align-items: flex-start; flex-direction: column; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+                    <button class="btn btn-outline btn-sm" onclick="volverAlDashboard()" style="margin-bottom: 0.5rem;">
+                        <i class="fa-solid fa-arrow-left"></i> Volver a Centros
                     </button>
-                </div>
-                
-                <!-- Sub-pestañas para dividir Fútbol y Gym -->
-                <div class="sub-tabs-container">
-                    <button id="subtab-soccer-btn" class="sub-tab-btn active soccer" onclick="switchSubTab('soccer')">
-                        <i class="fa-solid fa-futbol"></i> Academias de Fútbol
-                    </button>
-                    <button id="subtab-gym-btn" class="sub-tab-btn gym" onclick="switchSubTab('gym')">
-                        <i class="fa-solid fa-dumbbell"></i> Gimnasios
-                    </button>
-                </div>
-                
-                <!-- Buscador -->
-                <div class="glass-panel" style="margin-bottom: 2rem; padding: 1.25rem;">
-                    <div style="position: relative; display: flex; align-items: center;">
-                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; color: var(--color-text-muted);"></i>
-                        <input type="text" id="buscar-alumno-input" class="form-control" placeholder="Buscar miembro por nombre o tutor..." style="padding-left: 2.75rem;" oninput="filtrarAlumnos()">
-                    </div>
-                </div>
-                
-                <!-- Contenedor dinámico de miembros -->
-                <div id="alumnos-categorias-list" class="categories-container">
-                    <!-- Dinámico -->
-                </div>
-            </section>
-            
-            <!-- PANEL: CONTROL DE PARTIDOS -->
-            <section id="panel-partidos" class="section-panel">
-                <div class="content-header">
-                    <div>
-                        <h2>Control de Partidos y Arbitrajes</h2>
-                        <p>Registra la asistencia y cobra el arbitraje a los alumnos con un solo clic.</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="openAddPartidoModal()">
-                        <i class="fa-solid fa-circle-plus"></i> Registrar Partido
-                    </button>
-                </div>
-                
-                <!-- Selector de Partido Activo -->
-                <div class="glass-panel" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                        <div>
-                            <label for="filtro-partido-activo" style="font-weight: 700; color: var(--color-text-muted); font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Seleccionar Partido:</label>
-                            <select id="filtro-partido-activo" class="form-control" style="width: auto; padding: 0.4rem 1rem;" onchange="cargarDetallePartido()">
-                                <!-- Dinámico -->
-                            </select>
+                    
+                    <div style="display: flex; gap: 1.5rem; align-items: center; width: 100%; justify-content: space-between; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <img id="detalle-sede-logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='60' height='60' fill='%23111827'/></svg>" class="sede-logo-preview">
+                            <div>
+                                <h2 id="detalle-sede-nombre" style="font-family: var(--font-title); font-size: 2.2rem; font-weight: 800; color: #fff; line-height: 1.1;">-</h2>
+                                <p id="detalle-sede-rubro-corte" style="color: var(--color-text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Rubro: - | Fecha de Corte: -</p>
+                            </div>
+                        </div>
+                        
+                        <div id="detalle-sede-acciones" style="display: flex; gap: 0.75rem;">
+                            <!-- Botón dinámico Agregar Alumno / Suscriptor -->
                         </div>
                     </div>
-                    
-                    <div id="partido-info-resumen" style="text-align: right;">
+                </div>
+                
+                <!-- Barra de Navegación Interna de Sede (Fútbol o Gym) -->
+                <div class="sub-tabs-container" style="margin-bottom: 2.5rem;">
+                    <button id="subtab-miembros-btn" class="sub-tab-btn active soccer" onclick="switchSedeView('miembros')">
+                        <i class="fa-solid fa-users"></i> Miembros / Alumnos
+                    </button>
+                    <button id="subtab-contabilidad-btn" class="sub-tab-btn soccer" onclick="switchSedeView('contabilidad')">
+                        <i class="fa-solid fa-cash-register"></i> Contabilidad y Cobros
+                    </button>
+                </div>
+                
+                <!-- Sub-Panel: Miembros Registrados -->
+                <div id="sub-panel-miembros" class="sede-sub-view active">
+                    <div id="miembros-lista-drilldown" class="categories-container">
                         <!-- Dinámico -->
                     </div>
                 </div>
                 
-                <!-- Tabla de Asistencia y Arbitraje del Partido -->
-                <div class="glass-panel">
-                    <div class="table-container">
-                        <table class="accounting-table">
-                            <thead>
-                                <tr>
-                                    <th>Alumno</th>
-                                    <th>Categoría</th>
-                                    <th style="text-align: center; width: 150px;">Asistencia</th>
-                                    <th style="text-align: center; width: 200px;">Pago Arbitraje ($)</th>
-                                    <th style="text-align: center;">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-partido-tbody">
-                                <!-- Dinámico -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- PANEL: PLANILLA DE PAGOS -->
-            <section id="panel-pagos" class="section-panel">
-                <div class="content-header">
-                    <div>
-                        <h2>Planilla General de Cobros</h2>
-                        <p>Supervisa las cuotas de inscripción y mensualidad heredadas de cada sede.</p>
-                    </div>
-                </div>
-                
-                <div class="glass-panel">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <label for="filtro-sede-pagos" style="font-weight: 600; color: var(--color-text-muted); font-size: 0.9rem;">Filtrar Sede:</label>
-                            <select id="filtro-sede-pagos" class="form-control" style="width: auto; padding: 0.4rem 1rem;" onchange="renderPlanillaPagos()">
-                                <option value="todas">Todas las Sedes</option>
-                                <!-- Dinámico -->
-                            </select>
+                <!-- Sub-Panel: Cobros y Contabilidad (3 Estados con Abono Morado) -->
+                <div id="sub-panel-contabilidad" class="sede-sub-view" style="display: none;">
+                    <div class="glass-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <h3 style="font-family: var(--font-title);">Planilla de Cobros Mensuales</h3>
+                            <div style="display: flex; gap: 1rem; font-size: 0.75rem; font-weight: 700;">
+                                <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot adeudo" style="width:10px; height:10px; display:inline-block;"></span> NO PAGADO</span>
+                                <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot pagado" style="width:10px; height:10px; display:inline-block;"></span> PAGADO</span>
+                                <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot" style="background-color: var(--color-abono); width:10px; height:10px; display:inline-block;"></span> ABONADO</span>
+                            </div>
                         </div>
                         
-                        <div style="display: flex; gap: 1rem; font-size: 0.8rem; font-weight: 700;">
-                            <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot pagado" style="width:10px; height:10px; display:inline-block;"></span> PAGADO</span>
-                            <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot adeudo" style="width:10px; height:10px; display:inline-block;"></span> ADEUDO</span>
-                            <span style="display: flex; align-items: center; gap: 0.35rem;"><span class="indicator-dot pendiente" style="width:10px; height:10px; display:inline-block;"></span> PENDIENTE</span>
+                        <div class="table-container">
+                            <table class="accounting-table">
+                                <thead>
+                                    <tr>
+                                        <th>Miembro</th>
+                                        <th>Inscripción</th>
+                                        <th>Mayo</th>
+                                        <th>Junio (Actual)</th>
+                                        <th style="text-align: center;">Recordatorio</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planilla-sede-tbody">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    
-                    <div class="table-container">
-                        <table class="accounting-table">
-                            <thead>
-                                <tr>
-                                    <th>Miembro / Sede</th>
-                                    <th>Inscripción</th>
-                                    <th>Abril</th>
-                                    <th>Mayo</th>
-                                    <th>Junio (Actual)</th>
-                                    <th style="text-align: center;">Recordatorio</th>
-                                </tr>
-                            </thead>
-                            <tbody id="planilla-pagos-tbody">
-                                <!-- Dinámico -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- PANEL: CONTABILIDAD / CAJA -->
-            <section id="panel-contabilidad" class="section-panel">
-                <div class="content-header">
-                    <div>
-                        <h2>Caja y Contabilidad</h2>
-                        <p>Control financiero consolidado de todas tus academias y gimnasios.</p>
-                    </div>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-outline" onclick="exportarContabilidad()">
-                            <i class="fa-solid fa-file-pdf"></i> Imprimir Reporte
-                        </button>
-                        <button class="btn btn-danger" onclick="openAddTransaccionModal()">
-                            <i class="fa-solid fa-minus"></i> Registrar Egreso / Gasto
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="kpi-grid">
-                    <div class="glass-panel kpi-card">
-                        <div class="kpi-icon green">
-                            <i class="fa-solid fa-money-bill-trend-up"></i>
-                        </div>
-                        <div class="kpi-info">
-                            <h4>Total Ingresos</h4>
-                            <p id="caja-total-ingresos">$0.00</p>
-                        </div>
-                    </div>
-                    <div class="glass-panel kpi-card">
-                        <div class="kpi-icon red">
-                            <i class="fa-solid fa-money-bill-transfer"></i>
-                        </div>
-                        <div class="kpi-info">
-                            <h4>Total Egresos</h4>
-                            <p id="caja-total-egresos">$0.00</p>
-                        </div>
-                    </div>
-                    <div class="glass-panel kpi-card">
-                        <div class="kpi-icon yellow">
-                            <i class="fa-solid fa-scale-balanced"></i>
-                        </div>
-                        <div class="kpi-info">
-                            <h4>Balance Neto</h4>
-                            <p id="caja-balance-neto">$0.00</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Tabla de Transacciones -->
-                <div class="glass-panel">
-                    <h3 style="font-family: var(--font-title); margin-bottom: 1.5rem;">Historial de Caja Unificado</h3>
-                    <div class="table-container">
-                        <table class="accounting-table">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Tipo</th>
-                                    <th>Categoría</th>
-                                    <th>Descripción</th>
-                                    <th>Monto</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historial-caja-tbody">
-                                <!-- Dinámico -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- PANEL: CREDENCIALES DIGITALES -->
-            <section id="panel-credenciales" class="section-panel">
-                <div class="content-header">
-                    <div>
-                        <h2>Credenciales Digitales QR</h2>
-                        <p>Identificaciones oficiales con código QR dinámico de vigencia de pago.</p>
-                    </div>
-                </div>
-                
-                <div class="glass-panel" style="margin-bottom: 2.5rem;">
-                    <p style="color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">
-                        Las credenciales muestran la foto del miembro, su logo institucional y un <strong>Código QR interactivo</strong>. Al ser escaneado en partidos o accesos al gimnasio, despliega su vigencia y estatus administrativo de forma segura.
-                    </p>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <label for="filtro-sede-credenciales" style="font-weight: 600; color: var(--color-text-muted); font-size: 0.9rem;">Sede:</label>
-                        <select id="filtro-sede-credenciales" class="form-control" style="width: auto; padding: 0.4rem 1rem;" onchange="renderCredenciales()">
-                            <option value="todas">Todas</option>
-                            <!-- Dinámico -->
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- Galería de Credenciales -->
-                <div id="credenciales-galeria" class="credentials-showcase">
-                    <!-- Dinámico -->
                 </div>
             </section>
             
@@ -424,7 +137,7 @@
     
     <!-- ================= MODALES DE LA APLICACIÓN ================= -->
     
-    <!-- MODAL NUEVO: CONFIGURACIÓN DE BASE DE DATOS EN LA NUBE (FIREBASE) -->
+    <!-- MODAL: CONFIGURACIÓN DE BASE DE DATOS EN LA NUBE (FIREBASE) -->
     <div id="modal-config-nube" class="modal-overlay">
         <div class="modal-container" style="max-width: 500px;">
             <div class="modal-header">
@@ -432,7 +145,7 @@
                 <button class="modal-close" onclick="closeModal('modal-config-nube')">&times;</button>
             </div>
             <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">
-                Ingresa las credenciales de tu proyecto de Firebase Firestore para activar la sincronización en la nube y en tiempo real. Si se deja vacío, la aplicación guardará la información en este navegador.
+                Ingresa las credenciales de tu proyecto de Firebase Firestore para activar la sincronización en la nube y en tiempo real.
             </p>
             <form id="form-config-nube" onsubmit="guardarConfigNube(event)">
                 <div class="form-group">
@@ -475,7 +188,7 @@
         </div>
     </div>
     
-    <!-- MODAL: REGISTRAR SEDE / NEGOCIO -->
+    <!-- MODAL: REGISTRAR SEDE / NEGOCIO (CENTRO) -->
     <div id="modal-sede" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
@@ -484,13 +197,14 @@
             </div>
             <form id="form-sede" onsubmit="saveSede(event)">
                 <input type="hidden" id="edit-sede-id">
+                
                 <div class="form-group">
-                    <label for="sede-nombre"><i class="fa-solid fa-building"></i> Nombre de la Sede / Sucursal</label>
-                    <input type="text" id="sede-nombre" class="form-control" required placeholder="Ej: Academia Riveroll Nte, Riveroll Centro Gym">
+                    <label for="sede-nombre"><i class="fa-solid fa-building"></i> Nombre del Negocio / Centro</label>
+                    <input type="text" id="sede-nombre" class="form-control" required placeholder="Ej: Academia Riveroll, Street Training Gym">
                 </div>
                 
                 <div class="form-group">
-                    <label for="sede-rubro"><i class="fa-solid fa-tags"></i> Rubro del Negocio</label>
+                    <label for="sede-rubro"><i class="fa-solid fa-tags"></i> Tipo de Negocio</label>
                     <select id="sede-rubro" class="form-control" required>
                         <option value="soccer">Academia de Fútbol</option>
                         <option value="gym">Gimnasio</option>
@@ -500,27 +214,45 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label for="sede-inscripcion"><i class="fa-solid fa-dollar-sign"></i> Costo de Inscripción ($)</label>
-                        <input type="number" id="sede-inscripcion" class="form-control" required placeholder="Ej: 500" min="0">
+                        <input type="number" id="sede-inscripcion" class="form-control" required placeholder="Ej: 600" min="0">
                     </div>
                     <div class="form-group">
                         <label for="sede-mensualidad"><i class="fa-solid fa-dollar-sign"></i> Costo de Mensualidad ($)</label>
-                        <input type="number" id="sede-mensualidad" class="form-control" required placeholder="Ej: 800" min="0">
+                        <input type="number" id="sede-mensualidad" class="form-control" required placeholder="Ej: 900" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="sede-corte"><i class="fa-solid fa-calendar-days"></i> Fecha de Corte Mensual</label>
+                    <input type="date" id="sede-corte" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fa-solid fa-image"></i> Logo de la Sede</label>
+                    <div class="photo-upload-wrapper">
+                        <img id="sede-upload-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='8' fill='%236B7280'>Logo</text></svg>" alt="Preview" class="sede-logo-preview">
+                        <div style="flex-grow: 1;">
+                            <input type="file" id="sede-logo" accept="image/*" class="form-control" style="display: none;" onchange="previewSedeLogo(event)">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('sede-logo').click()">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Cargar Logotipo
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-sede')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Sede</button>
+                    <button type="submit" class="btn btn-accent" style="flex: 1;">Guardar Centro</button>
                 </div>
             </form>
         </div>
     </div>
     
-    <!-- MODAL: AGREGAR ALUMNO / MIEMBRO -->
+    <!-- MODAL: REGISTRAR ALUMNO / MIEMBRO -->
     <div id="modal-alumno" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3 id="modal-alumno-title">Registrar Nuevo Miembro</h3>
+                <h3 id="modal-alumno-title">Agregar Miembro</h3>
                 <button class="modal-close" onclick="closeModal('modal-alumno')">&times;</button>
             </div>
             <form id="form-alumno" onsubmit="saveAlumno(event)">
@@ -528,14 +260,12 @@
                 
                 <div class="form-group">
                     <label for="alumno-nombre"><i class="fa-solid fa-user"></i> Nombre Completo</label>
-                    <input type="text" id="alumno-nombre" class="form-control" required placeholder="Ej: Juan Pérez">
-                </div>
-                
-                <div class="form-group">
-                    <label for="alumno-sede"><i class="fa-solid fa-building-user"></i> Asignar Sede / Negocio</label>
-                    <select id="alumno-sede" class="form-control" required onchange="handleSedeChangeEnFormulario()">
-                        <!-- Dinámico -->
-                    </select>
+                    <div class="voice-input-wrapper">
+                        <input type="text" id="alumno-nombre" class="form-control" required placeholder="Ej: Juan Pérez">
+                        <button type="button" class="btn-mic" id="btn-mic-dictado" onclick="activarDictadoVoz('alumno-nombre')" title="Dictar nombre por voz">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -544,121 +274,99 @@
                         <input type="date" id="alumno-nacimiento" class="form-control" required onchange="calcularCategoriaAuto()">
                     </div>
                     <div class="form-group">
-                        <label for="alumno-categoria"><i class="fa-solid fa-graduation-cap"></i> Categoría / Perfil</label>
+                        <label for="alumno-categoria"><i class="fa-solid fa-graduation-cap"></i> Categoría Asignada</label>
                         <input type="text" id="alumno-categoria" class="form-control" readonly style="background: rgba(255,255,255,0.01); color: var(--color-accent); font-weight: 700;">
+                    </div>
+                </div>
+                
+                <!-- Controles específicos según Rubro -->
+                <div id="group-futbol-extra" class="form-group">
+                    <label><i class="fa-solid fa-venus-mars"></i> Rama / Categoría</label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="alumno-rama" value="Mixto" checked> Mixto
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="alumno-rama" value="Varonil"> Varonil
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="alumno-rama" value="Femenil"> Femenil
+                        </label>
                     </div>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
-                        <label for="alumno-tutor"><i class="fa-solid fa-user-shield"></i> Tutor / Responsable</label>
+                        <label for="alumno-tutor" id="label-tutor"><i class="fa-solid fa-user-shield"></i> Tutor / Responsable</label>
                         <input type="text" id="alumno-tutor" class="form-control" required placeholder="Ej: Carlos Pérez">
                     </div>
                     <div class="form-group">
-                        <label for="alumno-telefono"><i class="fa-solid fa-phone"></i> Teléfono (WhatsApp)</label>
+                        <label for="alumno-telefono"><i class="fa-solid fa-phone"></i> Teléfono Tutor</label>
                         <input type="tel" id="alumno-telefono" class="form-control" required placeholder="Ej: 5551234567" pattern="[0-9]{10}">
                     </div>
                 </div>
                 
+                <!-- Sección Multimedia: Subir o Tomar Foto con Cámara -->
                 <div class="form-group">
                     <label><i class="fa-solid fa-camera"></i> Foto del Miembro</label>
-                    <div class="photo-upload-wrapper">
-                        <img id="upload-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%236B7280'>Vista Previa</text></svg>" alt="Vista Previa" class="photo-preview">
-                        <div style="flex-grow: 1;">
-                            <input type="file" id="alumno-foto" accept="image/*" class="form-control" style="display: none;" onchange="previewImage(event)">
-                            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('alumno-foto').click()">
-                                <i class="fa-solid fa-cloud-arrow-up"></i> Cargar Imagen
-                            </button>
+                    <div class="photo-upload-wrapper" style="flex-direction: column; align-items: flex-start; gap: 1rem;">
+                        <div style="display: flex; gap: 1.5rem; align-items: center; width: 100%;">
+                            <img id="upload-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='10' fill='%236B7280'>Vista Previa</text></svg>" alt="Preview" class="photo-preview">
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <input type="file" id="alumno-foto" accept="image/*" class="form-control" style="display: none;" onchange="previewImage(event)">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('alumno-foto').click()">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Cargar Archivo
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="activarCamaraEnVivo()" style="background: var(--color-accent); color: #000;">
+                                    <i class="fa-solid fa-video"></i> Tomar Foto
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Panel de Captura con Cámara Web -->
+                        <div id="camera-work-area" style="display: none; width: 100%;">
+                            <div class="camera-container">
+                                <video id="video-stream" autoplay class="camera-video"></video>
+                            </div>
+                            <div class="camera-controls">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="capturarFotoCamara()">
+                                    <i class="fa-solid fa-camera"></i> Capturar
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="apagarCamara()">
+                                    Cancelar
+                                </button>
+                            </div>
+                            <canvas id="hidden-canvas" style="display: none;"></canvas>
                         </div>
                     </div>
                 </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-alumno')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Registro</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;" id="btn-save-alumno-submit">Guardar</button>
                 </div>
             </form>
         </div>
     </div>
     
-    <!-- MODAL: REGISTRAR PARTIDO -->
-    <div id="modal-partido" class="modal-overlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3>Registrar Próximo Partido</h3>
-                <button class="modal-close" onclick="closeModal('modal-partido')">&times;</button>
+    <!-- MODAL DE DIALOGO: REGISTRO DE ABONOS -->
+    <div id="modal-abono-monto" class="modal-overlay" style="z-index: 110;">
+        <div class="modal-container" style="max-width: 320px; padding: 1.5rem;">
+            <div class="modal-header" style="margin-bottom: 1rem; padding-bottom: 0.5rem;">
+                <h3>Registrar Abono</h3>
             </div>
-            <form id="form-partido" onsubmit="savePartido(event)">
-                <div class="form-group">
-                    <label for="partido-categoria"><i class="fa-solid fa-graduation-cap"></i> Categoría del Equipo</label>
-                    <select id="partido-categoria" class="form-control" required>
-                        <!-- Dinámico -->
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="partido-rival"><i class="fa-solid fa-shield-halved"></i> Equipo Rival</label>
-                    <input type="text" id="partido-rival" class="form-control" required placeholder="Ej: Club América Filial">
-                </div>
-                
-                <div class="form-group">
-                    <label for="partido-fecha"><i class="fa-solid fa-calendar-day"></i> Fecha del Partido</label>
-                    <input type="date" id="partido-fecha" class="form-control" required>
-                </div>
-                
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-partido')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Partido</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- MODAL: REGISTRAR EGRESO -->
-    <div id="modal-transaccion" class="modal-overlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3>Registrar Egreso / Gasto</h3>
-                <button class="modal-close" onclick="closeModal('modal-transaccion')">&times;</button>
+            <div class="form-group">
+                <label for="abono-monto-input">Monto del Abono ($)</label>
+                <input type="number" id="abono-monto-input" class="form-control" required placeholder="Ej: 400" min="0">
             </div>
-            <form id="form-transaccion" onsubmit="saveTransaccion(event)">
-                <div class="form-group">
-                    <label for="gasto-categoria"><i class="fa-solid fa-tags"></i> Categoría del Gasto</label>
-                    <select id="gasto-categoria" class="form-control" required>
-                        <option value="Arbitraje General">Arbitraje General</option>
-                        <option value="Renta de Canchas">Renta de Canchas</option>
-                        <option value="Nómina de Entrenadores">Nómina de Entrenadores</option>
-                        <option value="Material Deportivo">Material Deportivo</option>
-                        <option value="Papelería / Uniformes">Papelería / Uniformes</option>
-                        <option value="Servicios (Luz, Agua, Gas)">Servicios (Luz, Agua, Gas)</option>
-                        <option value="Otros">Otros</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="gasto-monto"><i class="fa-solid fa-dollar-sign"></i> Monto ($)</label>
-                    <input type="number" id="gasto-monto" class="form-control" required placeholder="Ej: 500" min="0" step="any">
-                </div>
-                
-                <div class="form-group">
-                    <label for="gasto-descripcion"><i class="fa-solid fa-file-signature"></i> Descripción</label>
-                    <input type="text" id="gasto-descripcion" class="form-control" required placeholder="Ej: Pago de renta de cancha sintética">
-                </div>
-                
-                <div class="form-group">
-                    <label for="gasto-fecha"><i class="fa-solid fa-calendar-day"></i> Fecha</label>
-                    <input type="date" id="gasto-fecha" class="form-control" required>
-                </div>
-                
-                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-transaccion')">Cancelar</button>
-                    <button type="submit" class="btn btn-danger" style="flex: 1;">Registrar Gasto</button>
-                </div>
-            </form>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button type="button" class="btn btn-outline btn-sm" style="flex: 1;" onclick="closeModal('modal-abono-monto')">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" style="flex: 1; background: var(--color-abono); color: #fff;" onclick="guardarAbonoMonto()">Abonar</button>
+            </div>
         </div>
     </div>
 
-    <!-- Cargar base de datos local y lógica de control -->
+    <!-- Scripts de Datos y Lógica -->
     <script src="db.js"></script>
     <script src="app.js"></script>
 </body>

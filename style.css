@@ -1,32 +1,36 @@
 /* 
- * style.css - Diseño Premium Multi-Rubro (Fútbol y Gimnasio) para Academia Riveroll
- * Enfoque: Modo oscuro de alto contraste, acentos oro/verde (Fútbol) y naranja (Gym).
+ * style.css - Diseño Corporativo Premium v3.0 (Riveroll App)
+ * Sin barra lateral, centrado en el logotipo oficial, multimedia e interactividad fluida.
  */
 
 :root {
-    --bg-main: #070a13;
-    --bg-card: rgba(17, 24, 39, 0.75);
-    --bg-card-heavy: rgba(13, 18, 30, 0.95);
-    --border-color: rgba(255, 255, 255, 0.06);
+    --bg-main: #060913;
+    --bg-card: rgba(13, 20, 37, 0.85);
+    --bg-card-heavy: rgba(8, 12, 24, 0.98);
+    --border-color: rgba(255, 255, 255, 0.05);
     --border-color-glow: rgba(255, 255, 255, 0.12);
     
-    --color-primary: #10b981;       /* Verde césped deportivo (Fútbol) */
+    --color-primary: #10b981;       /* Verde césped (Fútbol) */
     --color-primary-hover: #059669;
     
-    --color-gym: #f97316;           /* Naranja deportivo (Gimnasio) */
+    --color-gym: #f97316;           /* Naranja deportivo (Gym) */
     --color-gym-hover: #ea580c;
     
-    --color-accent: #fbbf24;        /* Oro de campeonato */
-    --color-accent-hover: #d97706;
+    --color-accent: #cda250;        /* Oro Riveroll (Logotipo) */
+    --color-accent-hover: #b48937;
     
-    --color-danger: #ef4444;        /* Rojo adeudo */
+    --color-abono: #8b5cf6;          /* Morado Abono */
+    --color-abono-hover: #7c3aed;
+    
+    --color-danger: #ef4444;        /* Rojo adeudo / No pagado */
     --color-danger-hover: #dc2626;
+    
     --color-text: #f3f4f6;
     --color-text-muted: #9ca3af;
     
     --font-main: 'Inter', sans-serif;
     --font-title: 'Outfit', sans-serif;
-    --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.7);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -39,8 +43,8 @@
 body {
     background-color: var(--bg-main);
     background-image: 
-        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(249, 115, 22, 0.04) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(205, 162, 80, 0.03) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.02) 0px, transparent 50%);
     background-attachment: fixed;
     color: var(--color-text);
     font-family: var(--font-main);
@@ -48,138 +52,90 @@ body {
     overflow-x: hidden;
 }
 
-/* Layout General */
+/* Contenedor sin Sidebar */
 .app-container {
-    display: flex;
+    width: 100%;
     min-height: 100vh;
-}
-
-/* Barra Lateral de Navegación */
-.sidebar {
-    width: 280px;
-    background: var(--bg-card-heavy);
-    border-right: 1px solid var(--border-color);
-    padding: 2.5rem 1.5rem;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    position: fixed;
-    height: 100vh;
-    z-index: 10;
+    align-items: center;
 }
 
-.sidebar-header {
+/* Encabezado Corporativo */
+.corp-header {
+    width: 100%;
+    background: linear-gradient(180deg, rgba(8, 12, 24, 0.95) 0%, rgba(6, 9, 19, 0.8) 100%);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
-.logo-icon {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-gym));
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
+.corp-logo-wrapper {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    color: #000;
-    font-size: 1.3rem;
-    font-weight: 800;
-    font-family: var(--font-title);
-    box-shadow: 0 0 15px rgba(249, 115, 22, 0.2);
+    gap: 0.5rem;
 }
 
-.logo-text h1 {
+.corp-logo-img {
+    width: 80px;
+    height: auto;
+    border-radius: 50%;
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 0 20px rgba(205, 162, 80, 0.3);
+    transition: var(--transition);
+}
+
+.corp-logo-img:hover {
+    transform: rotate(5deg) scale(1.05);
+}
+
+.corp-title {
     font-family: var(--font-title);
-    font-size: 1.4rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    background: linear-gradient(to right, #fff, var(--color-text-muted));
+    font-size: 1.8rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    background: linear-gradient(to right, #ffffff, var(--color-accent));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-}
-
-.logo-text span {
-    font-size: 0.75rem;
-    color: var(--color-accent);
     text-transform: uppercase;
-    letter-spacing: 2px;
-    font-weight: 700;
-    display: block;
 }
 
-.nav-menu {
-    list-style: none;
+/* Área de Botones en la Cabecera */
+.header-actions {
     display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    flex-grow: 1;
-}
-
-.nav-item button {
-    width: 100%;
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    padding: 0.9rem 1.1rem;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
     gap: 1rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: left;
-    transition: var(--transition);
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
-.nav-item button i {
-    font-size: 1.1rem;
-    transition: var(--transition);
-}
-
-.nav-item button:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.nav-item.active button {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.02);
-}
-
-.nav-item.active button i {
-    color: var(--color-accent);
-}
-
-.sidebar-footer {
-    color: var(--color-text-muted);
-    font-size: 0.8rem;
-    border-top: 1px solid var(--border-color);
-    padding-top: 1.5rem;
-}
-
-/* Área de Contenido Principal */
+/* Contenido Principal Centrado */
 .main-content {
-    margin-left: 280px;
-    flex-grow: 1;
-    padding: 2.5rem;
-    min-height: 100vh;
+    width: 100%;
+    max-width: 1200px;
+    padding: 2.5rem 1.5rem;
+    min-height: calc(100vh - 180px);
 }
 
 .content-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
 }
 
 .content-header h2 {
     font-family: var(--font-title);
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 800;
 }
 
@@ -188,13 +144,13 @@ body {
     font-size: 0.95rem;
 }
 
-/* Estilos de Vidrio (Glassmorphism) */
+/* Paneles de Vidrio */
 .glass-panel {
     background: var(--bg-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 2rem;
     box-shadow: var(--shadow);
     transition: var(--transition);
@@ -202,42 +158,6 @@ body {
 
 .glass-panel:hover {
     border-color: var(--border-color-glow);
-}
-
-/* Sub-Pestañas Internas (Sub-Tabs) */
-.sub-tabs-container {
-    display: flex;
-    gap: 0.5rem;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0.4rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    width: fit-content;
-}
-
-.sub-tab-btn {
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    padding: 0.6rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: var(--transition);
-    font-family: var(--font-main);
-    font-size: 0.9rem;
-}
-
-.sub-tab-btn.active.soccer {
-    background: rgba(16, 185, 129, 0.12);
-    color: var(--color-primary);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.sub-tab-btn.active.gym {
-    background: rgba(249, 115, 22, 0.12);
-    color: var(--color-gym);
-    border: 1px solid rgba(249, 115, 22, 0.2);
 }
 
 /* Botones Premium */
@@ -286,7 +206,7 @@ body {
 .btn-accent:hover {
     background: var(--color-accent-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(251, 191, 36, 0.25);
+    box-shadow: 0 8px 20px rgba(205, 162, 80, 0.3);
 }
 
 .btn-danger {
@@ -316,116 +236,20 @@ body {
     border-radius: 8px;
 }
 
-/* Grid de Indicadores (KPIs) */
-.kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2.5rem;
-}
-
-.kpi-card {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-}
-
-.kpi-icon {
-    width: 54px;
-    height: 54px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
-
-.kpi-icon.green {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--color-primary);
-}
-
-.kpi-icon.orange {
-    background: rgba(249, 115, 22, 0.1);
-    color: var(--color-gym);
-}
-
-.kpi-icon.yellow {
-    background: rgba(251, 191, 36, 0.1);
-    color: var(--color-accent);
-}
-
-.kpi-icon.red {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--color-danger);
-}
-
-.kpi-info h4 {
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.kpi-info p {
-    font-family: var(--font-title);
-    font-size: 1.8rem;
-    font-weight: 800;
-}
-
-/* Secciones de Categorías y Grid de Miembros */
-.categories-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
-}
-
-.category-section {
-    background: rgba(17, 24, 39, 0.3);
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 0.75rem;
-}
-
-.category-title {
-    font-family: var(--font-title);
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--color-accent);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.category-badge {
-    background: rgba(251, 191, 36, 0.1);
-    color: var(--color-accent);
-    font-size: 0.8rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 20px;
-    font-weight: 700;
-}
-
+/* Grid de Tarjetas de Sedes / Centros */
 .students-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-top: 1rem;
 }
 
+/* Tarjeta Sede Estilizada */
 .student-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1.25rem;
+    border-radius: 20px;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -435,129 +259,174 @@ body {
 }
 
 .student-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.6);
 }
 
 .student-card.border-soccer:hover {
     border-color: rgba(16, 185, 129, 0.3);
-    box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.05);
 }
 
 .student-card.border-gym:hover {
     border-color: rgba(249, 115, 22, 0.3);
-    box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.05);
 }
 
-.student-info-main {
+.sede-card-header {
     display: flex;
-    gap: 1rem;
+    gap: 1.25rem;
+    align-items: center;
     margin-bottom: 1.25rem;
 }
 
-.student-avatar {
-    width: 65px;
-    height: 65px;
+.sede-logo-preview {
+    width: 60px;
+    height: 60px;
     border-radius: 12px;
     object-fit: cover;
-    background: #1f2937;
-    border: 2px solid rgba(255, 255, 255, 0.05);
+    background: #111827;
+    border: 1px solid var(--border-color-glow);
 }
 
-.student-avatar-placeholder {
-    width: 65px;
-    height: 65px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
+/* Botón de Dictado por Voz (Micrófono) */
+.voice-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.voice-input-wrapper input {
+    padding-right: 3rem;
+}
+
+.btn-mic {
+    position: absolute;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    color: var(--color-text-muted);
-    border: 2px dashed rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+    outline: none;
 }
 
-.student-details-txt h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
+.btn-mic:hover {
     color: #fff;
-    margin-bottom: 0.2rem;
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.student-details-txt p {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
+.btn-mic.listening {
+    color: var(--color-danger);
+    background: rgba(239, 68, 68, 0.15);
+    animation: pulse 1.2s infinite;
 }
 
-.student-details-txt span {
-    display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-top: 0.25rem;
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
-/* Control de Pagos */
-.payments-row {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-    padding: 0.75rem;
+/* Estilos de Cámara Web en Modales */
+.camera-container {
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    margin: 1rem auto;
+    aspect-ratio: 4/3;
+    border: 1px solid var(--border-color-glow);
+}
+
+.camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-controls {
     display: flex;
-    justify-content: space-around;
-    align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-top: 0.5rem;
 }
 
-.payment-toggle {
+/* Grid de Alumnos Agrupados */
+.category-section {
+    background: rgba(13, 20, 37, 0.4);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2.5rem;
+}
+
+.category-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.25rem;
-    cursor: pointer;
-    flex: 1;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 0.75rem;
 }
 
-.payment-toggle span {
-    font-size: 0.7rem;
+/* Estados de Pago y Botones Cíclicos */
+.planilla-payment-btn {
+    width: 100%;
+    min-width: 90px;
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
-}
-
-.indicator-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    text-align: center;
+    border: none;
     transition: var(--transition);
 }
 
-.indicator-dot.pagado {
-    background-color: var(--color-primary);
-    box-shadow: 0 0 8px var(--color-primary);
-    border-color: transparent;
+/* Estado: No Pagado */
+.planilla-payment-btn.no-pagado {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--color-danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.indicator-dot.pendiente {
-    background-color: #6b7280;
-    border-color: transparent;
+.planilla-payment-btn.no-pagado:hover {
+    background: rgba(239, 68, 68, 0.25);
 }
 
-.indicator-dot.adeudo {
-    background-color: var(--color-danger);
-    box-shadow: 0 0 8px var(--color-danger);
-    border-color: transparent;
+/* Estado: Pagado */
+.planilla-payment-btn.pagado {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-primary);
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.student-card-actions {
-    display: flex;
-    gap: 0.5rem;
+.planilla-payment-btn.pagado:hover {
+    background: rgba(16, 185, 129, 0.25);
 }
 
-.student-card-actions button {
-    flex: 1;
+/* Estado: Abonado (Morado) */
+.planilla-payment-btn.abonado {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--color-abono);
+    border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
-/* Tablas Contables y de Asistencia */
+.planilla-payment-btn.abonado:hover {
+    background: rgba(139, 92, 246, 0.25);
+}
+
+/* Tablas */
 .table-container {
     overflow-x: auto;
     margin-top: 1.5rem;
@@ -582,49 +451,7 @@ body {
     padding: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     font-size: 0.95rem;
-}
-
-.accounting-table tr:hover td {
-    background: rgba(255, 255, 255, 0.01);
-}
-
-.badge-income {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--color-primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
-
-.badge-expense {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--color-danger);
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
-
-/* Control Asistencia Checkbox */
-.attendance-check {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: var(--transition);
-    font-size: 0.8rem;
-    color: transparent;
-}
-
-.attendance-check.checked {
-    background: var(--color-primary);
-    border-color: transparent;
-    color: #000;
+    vertical-align: middle;
 }
 
 /* Modales */
@@ -634,7 +461,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(5, 5, 10, 0.8);
+    background: rgba(5, 5, 10, 0.85);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
@@ -653,13 +480,15 @@ body {
 .modal-container {
     background: var(--bg-card-heavy);
     border: 1px solid var(--border-color-glow);
-    border-radius: 20px;
+    border-radius: 24px;
     width: 100%;
     max-width: 550px;
     padding: 2rem;
     box-shadow: 0 20px 50px rgba(0,0,0,0.8);
     transform: scale(0.9);
     transition: var(--transition);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-overlay.active .modal-container {
@@ -671,6 +500,8 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 0.75rem;
 }
 
 .modal-header h3 {
@@ -719,220 +550,30 @@ body {
 
 .form-control:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--color-accent);
     background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+    box-shadow: 0 0 10px rgba(205, 162, 80, 0.1);
 }
 
-.photo-upload-wrapper {
+/* Radio Group */
+.radio-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.radio-option {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    background: rgba(0, 0, 0, 0.15);
-    padding: 1rem;
-    border-radius: 12px;
-    border: 1px dashed rgba(255, 255, 255, 0.1);
+    gap: 0.5rem;
+    cursor: pointer;
 }
 
-.photo-preview {
-    width: 80px;
-    height: 80px;
-    border-radius: 12px;
-    object-fit: cover;
-    background: #111827;
+.radio-option input {
+    cursor: pointer;
 }
 
-/* DISEÑO DE CREDENCIALES DIGITALES ADAPTATIVAS */
-.credentials-showcase {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2rem;
-    justify-content: center;
-    margin-top: 2rem;
-}
-
-.card-digital {
-    width: 330px;
-    height: 480px;
-    background: linear-gradient(135deg, #0e1628 0%, #070913 100%);
-    border-radius: 20px;
-    padding: 1.5rem;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    text-align: center;
-    border: 2px solid rgba(255, 255, 255, 0.05);
-    transition: var(--transition);
-}
-
-/* Variación Fútbol (Verde/Oro) */
-.card-digital.soccer {
-    border-color: rgba(251, 191, 36, 0.25);
-}
-
-.card-digital.soccer::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(251, 191, 36, 0.04) 0%, transparent 60%);
-    pointer-events: none;
-}
-
-/* Variación Gimnasio (Naranja/Gris) */
-.card-digital.gym {
-    border-color: rgba(249, 115, 22, 0.25);
-}
-
-.card-digital.gym::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(249, 115, 22, 0.04) 0%, transparent 60%);
-    pointer-events: none;
-}
-
-/* Cabecera y Badges de Credencial */
-.card-header-badge {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 0.75rem;
-}
-
-.card-header-badge span.academy-title {
-    font-family: var(--font-title);
-    font-weight: 800;
-    font-size: 0.95rem;
-    letter-spacing: 0.5px;
-}
-
-.card-digital.soccer span.academy-title {
-    color: var(--color-accent);
-}
-
-.card-digital.gym span.academy-title {
-    color: var(--color-gym);
-}
-
-.card-status-pill {
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 0.25rem 0.6rem;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.card-status-pill.activo {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--color-primary);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.card-status-pill.inactivo {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--color-danger);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* Cuerpo de Credencial */
-.card-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    flex-grow: 1;
-    justify-content: center;
-}
-
-.card-photo {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    object-fit: cover;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-}
-
-.card-digital.soccer .card-photo {
-    border: 3px solid var(--color-accent);
-}
-
-.card-digital.gym .card-photo {
-    border: 3px solid var(--color-gym);
-}
-
-.card-name {
-    font-family: var(--font-title);
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-.card-category {
-    font-size: 0.85rem;
-    background: rgba(255,255,255,0.04);
-    padding: 0.25rem 0.75rem;
-    border-radius: 10px;
-    color: var(--color-text-muted);
-    font-weight: 600;
-}
-
-/* Zona inferior QR y Emergencias */
-.card-footer-info {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255,255,255,0.02);
-    padding: 0.75rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.03);
-    margin-top: 1rem;
-}
-
-.card-emergency {
-    text-align: left;
-}
-
-.card-emergency label {
-    font-size: 0.6rem;
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    display: block;
-}
-
-.card-emergency p {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-.card-qr-container {
-    width: 64px;
-    height: 64px;
-    background: #fff;
-    border-radius: 8px;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-/* Paneles de Control Activo */
+/* Elementos Invisibles */
 .section-panel {
     display: none;
 }
@@ -945,20 +586,4 @@ body {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-/* Adaptación Responsiva */
-@media (max-width: 992px) {
-    .sidebar {
-        width: 80px;
-        padding: 2rem 0.5rem;
-        align-items: center;
-    }
-    .logo-text, .sidebar-footer, .nav-item span {
-        display: none;
-    }
-    .main-content {
-        margin-left: 80px;
-        padding: 1.5rem;
-    }
 }

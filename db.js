@@ -1,18 +1,18 @@
 /**
  * db.js - Adaptador Híbrido de Persistencia (Local / Firebase Firestore)
  * Versión de Producción Limpia (Sin Datos Demo).
- * Soporta edición y eliminación completa de sedes, miembros, partidos y caja.
+ * Soporta registro de logotipos de sedes, fechas de corte, y el mapa de pagos con abonos.
  */
 
 const STORAGE_KEYS = {
-    CONFIG_NUBE: 'riveroll_firebase_config_v2',
-    SEDES: 'riveroll_sedes',
-    ALUMNOS: 'riveroll_alumnos',
-    TRANSACCIONES: 'riveroll_transacciones',
-    PARTIDOS: 'riveroll_partidos'
+    CONFIG_NUBE: 'riveroll_firebase_config_v3',
+    SEDES: 'riveroll_sedes_v3',
+    ALUMNOS: 'riveroll_alumnos_v3',
+    TRANSACCIONES: 'riveroll_transacciones_v3',
+    PARTIDOS: 'riveroll_partidos_v3'
 };
 
-// Datos Semilla de Producción (Vacíos por defecto para iniciar limpios)
+// Datos Semilla de Producción (Vacíos por defecto)
 const SEMILLA_SEDES = [];
 const SEMILLA_ALUMNOS = [];
 const SEMILLA_TRANSACCIONES = [];
@@ -156,7 +156,7 @@ const dbAdapter = {
 
     // --- OPERACIONES DE ESCRITURA ---
 
-    // 1. SEDES (CON EDITAR Y ELIMINAR)
+    // 1. SEDES
     async agregarSede(sede) {
         if (useFirebase && firestoreDb) {
             const docRef = await firestoreDb.collection('sedes').add(sede);
