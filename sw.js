@@ -4,8 +4,8 @@ const ASSETS = [
   './index.html',
   './ticket.html',
   './style.css',
-  './app.js',
-  './db.js',
+  './app.js?v=11',
+  './db.js?v=11',
   './logo.jpg'
 ];
 
