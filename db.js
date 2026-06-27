@@ -161,6 +161,7 @@ const dbAdapter = {
             return { id: docRef.id, ...sede };
         } else {
             const sedes = this.getSedesLocal();
+            sede.id = 's_' + Date.now();
             sedes.push(sede);
             this.saveSedesLocal(sedes);
             notificarCambio('sedes', sedes);
@@ -205,6 +206,7 @@ const dbAdapter = {
             return { id: docRef.id, ...alumno };
         } else {
             const alumnos = this.getAlumnosLocal();
+            alumno.id = 'a_' + Date.now();
             alumnos.push(alumno);
             this.saveAlumnosLocal(alumnos);
             notificarCambio('alumnos', alumnos);
