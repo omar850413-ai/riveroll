@@ -593,14 +593,16 @@ body {
 /* Botones de Pestañas Celestes más Grandes y Modernos */
 .sub-tabs-container {
     display: flex;
-    gap: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
     width: 100%;
 }
 
 .sub-tab-btn {
-    flex: 1;
-    padding: 1.2rem 2rem;
-    font-size: 1.1rem;
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: 130px;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
     font-weight: 800;
     font-family: var(--font-title);
     border-radius: 16px;
@@ -994,6 +996,12 @@ body {
 }
 
 .btn-full {
+    width: 100%;
+}
+
+/* El botón Totales toma el 100% de la fila */
+#subtab-totales-btn {
+    flex: 1 1 100%;
     width: 100%;
 }
 

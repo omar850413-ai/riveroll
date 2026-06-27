@@ -1232,12 +1232,25 @@ function mostrarTicketPago(miembroId, campo, monto) {
     document.getElementById('modal-ticket-pago').classList.add('active');
 }
 
-function imprimirTicketDigital() {
-    // Abrir el cuadro de impresión nativo del navegador enfocándose en el ticket
-    window.print();
+function descargarTicketDesdeModal() {
+    const element = document.getElementById('ticket-capture-area');
+    const alumnoNombre = document.getElementById('ticket-alumno-nombre').innerText || 'Integrante';
+    const opt = {
+        margin:       [0.4, 0.4, 0.4, 0.4],
+        filename:     `Ticket_Pago_${alumnoNombre.replace(/\s+/g, '_')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, backgroundColor: '#ffffff', logging: false },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+
+function descargarReporteDesdeModal() {
+    descargarReportePDF(state.tempReporteTipo || 'planilla');
 }
 
 function abrirVistaPreviaReporte(tipo = 'planilla') {
+    state.tempReporteTipo = tipo;
     const Sede = state.sedes.find(s => s.id === state.activeSedeId);
     if (!Sede) return;
     

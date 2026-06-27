@@ -212,7 +212,7 @@
                                     <i class="fa-solid fa-eye"></i> Vista Previa
                                 </button>
                                 <button class="btn btn-primary btn-sm" onclick="descargarReportePDF('planilla')" style="background: #0ea5e9; color: #000; font-weight: 700;">
-                                    <i class="fa-solid fa-share-nodes"></i> Compartir / Descargar PDF
+                                    <i class="fa-solid fa-file-arrow-down"></i> Descargar
                                 </button>
                             </div>
                         </div>
@@ -624,8 +624,8 @@
             
             <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                 <button type="button" class="btn btn-outline btn-sm" style="flex: 1;" onclick="closeModal('modal-ticket-pago')">Cerrar</button>
-                <button type="button" class="btn btn-primary btn-sm" style="flex: 1; background: #0ea5e9; color: #000; font-weight: 700;" onclick="imprimirTicketDigital()">
-                    <i class="fa-solid fa-print"></i> Imprimir Ticket
+                <button type="button" class="btn btn-primary btn-sm" style="flex: 1; background: #0ea5e9; color: #000; font-weight: 700;" onclick="descargarTicketDesdeModal()">
+                    <i class="fa-solid fa-file-arrow-down"></i> Descargar
                 </button>
             </div>
         </div>
@@ -671,8 +671,8 @@
             
             <div style="display: flex; gap: 1rem; margin-top: 2rem;" class="print-actions-hide">
                 <button type="button" class="btn btn-outline btn-sm" style="flex: 1; border-color: #555; color: #333;" onclick="closeModal('modal-reporte-print')">Cerrar Vista Previa</button>
-                <button type="button" class="btn btn-primary btn-sm" style="flex: 1; background: #0ea5e9; color: #000; font-weight: 700;" onclick="window.print()">
-                    <i class="fa-solid fa-print"></i> Imprimir / Guardar como PDF
+                <button type="button" class="btn btn-primary btn-sm" style="flex: 1; background: #0ea5e9; color: #000; font-weight: 700;" onclick="descargarReporteDesdeModal()">
+                    <i class="fa-solid fa-file-arrow-down"></i> Descargar
                 </button>
             </div>
         </div>
