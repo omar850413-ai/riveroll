@@ -248,7 +248,8 @@ function renderAlumnosDrilldown() {
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <span style="font-weight: bold; color: var(--color-accent); font-family: monospace; font-size: 1.1rem;">${(index + 1).toString().padStart(2, '0')}</span>
                     <h3>${miembro.nombre}</h3>
-                    ${esSoccer ? `<span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: bold;">Cat. ${miembro.categoria}</span>` : ''}
+                    ${esSoccer ? `<span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: bold; margin-right: 0.5rem;">Cat. ${miembro.categoria}</span>` : ''}
+                    ${esSoccer && miembro.camiseta ? `<span style="font-size: 0.75rem; background: rgba(205, 162, 80, 0.15); color: var(--color-accent); padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: bold;"><i class="fa-solid fa-shirt"></i> #${miembro.camiseta}</span>` : ''}
                 </div>
                 <i class="fa-solid fa-chevron-down alignment-arrow-icon"></i>
             </div>
@@ -261,6 +262,7 @@ function renderAlumnosDrilldown() {
                         <p><strong>Teléfono:</strong> <a href="https://wa.me/${miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : '52' + miembro.tutorTelefono}" target="_blank" style="color: #38bdf8; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> ${miembro.tutorTelefono}</a></p>
                         <p><strong>${esSoccer ? 'Tutor/Responsable' : 'Contacto de Emergencia'}:</strong> ${miembro.tutorNombre || '-'}</p>
                         ${esSoccer ? `<p><strong>Rama:</strong> ${miembro.rama || 'Mixto'}</p>` : ''}
+                        ${esSoccer && miembro.camiseta ? `<p><strong>Número de Camiseta:</strong> #${miembro.camiseta}</p>` : ''}
                     </div>
                     
                     <div style="display: flex; gap: 0.5rem; align-self: center;">
@@ -694,6 +696,7 @@ async function saveAlumno(event) {
     const categoria = document.getElementById('alumno-categoria').value;
     const tutorNombre = document.getElementById('alumno-tutor').value;
     const tutorTelefono = document.getElementById('alumno-telefono').value;
+    const camiseta = document.getElementById('alumno-camiseta') ? document.getElementById('alumno-camiseta').value : '';
     
     // Obtener rama activa de fútbol si existe
     let rama = 'Mixto';
@@ -715,6 +718,7 @@ async function saveAlumno(event) {
         tutorNombre,
         tutorTelefono,
         rama,
+        camiseta,
         foto: state.base64Foto,
         pagos: id ? state.alumnos.find(a => a.id === id).pagos : {
             inscripcion: { status: 'no-pagado', abono: 0 },
@@ -966,6 +970,7 @@ function openEditAlumnoModal(id) {
     if (esSoccer) {
         document.getElementById('group-futbol-extra').style.display = 'block';
         document.getElementById('label-tutor').innerHTML = `<i class="fa-solid fa-user-shield"></i> Tutor / Responsable`;
+        document.getElementById('alumno-camiseta').value = alumno.camiseta || '';
         
         // Poner check al radio
         const radios = document.getElementsByName('alumno-rama');
@@ -977,6 +982,7 @@ function openEditAlumnoModal(id) {
     } else {
         document.getElementById('group-futbol-extra').style.display = 'none';
         document.getElementById('label-tutor').innerHTML = `<i class="fa-solid fa-user-shield"></i> Contacto de Emergencia`;
+        document.getElementById('alumno-camiseta').value = '';
     }
     
     state.base64Foto = alumno.foto || '';
