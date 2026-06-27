@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v12') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v12', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v13') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v13', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -315,9 +315,10 @@
                             </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Sub-Panel: Trabajadores (Pestaña 4) -->
-                <div id="sub-panel-trabajadores" class="sede-sub-view" style="display: none;">
+            <!-- Sub-Panel: Trabajadores (Pestaña 4) -->
+            <div id="sub-panel-trabajadores" class="sede-sub-view" style="display: none;">
                     <div class="glass-panel" style="margin-bottom: 2rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                             <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;"><i class="fa-solid fa-users-gear"></i> Gestión de Trabajadores</h3>
@@ -861,7 +862,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=12"></script>
-    <script src="app.js?v=12"></script>
+    <script src="db.js?v=13"></script>
+    <script src="app.js?v=13"></script>
 </body>
 </html>
