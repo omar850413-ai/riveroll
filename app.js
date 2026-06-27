@@ -350,9 +350,12 @@ function renderPlanillaCobrosSede() {
                     ${pagoJunio.texto}
                 </button>
             </td>
-            <td style="text-align: center;">
-                <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}')" title="Enviar Recordatorio de Adeudo por WhatsApp">
-                    <i class="fa-brands fa-whatsapp" style="color: var(--color-primary); font-size: 1.1rem;"></i> Recordar
+            <td style="text-align: center; white-space: nowrap;">
+                <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}')" title="Cobrar Adeudos por WhatsApp" style="margin-right: 0.35rem; border-color: var(--color-danger); color: var(--color-danger); background: rgba(239, 68, 68, 0.02);">
+                    <i class="fa-brands fa-whatsapp"></i> Cobrar
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="enviarComprobanteWhatsApp('${miembro.id}')" title="Enviar Comprobante de Pago por WhatsApp" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.02);">
+                    <i class="fa-solid fa-receipt"></i> Ticket
                 </button>
             </td>
         `;
@@ -1162,4 +1165,44 @@ function imprimirDescargarReportePDF() {
     setTimeout(() => {
         window.print();
     }, 300);
+}
+
+function enviarComprobanteWhatsApp(miembroId) {
+    const miembro = state.alumnos.find(a => a.id === miembroId);
+    if (!miembro) return;
+    
+    const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+    if (!Sede) return;
+    
+    let desgloseText = [];
+    
+    // 1. Inscripción
+    const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
+    if (pInsc.status === 'pagado') {
+        desgloseText.push(`• Inscripción: LIQUIDADO ($${Sede.inscripcion})`);
+    } else if (pInsc.status === 'abonado') {
+        const abono = miembro.pagos.inscripcion.abono || 0;
+        desgloseText.push(`• Inscripción: ABONÓ $${abono} de $${Sede.inscripcion} (Restante: $${Sede.inscripcion - abono})`);
+    }
+    
+    // 2. Mensualidades
+    Object.entries(miembro.pagos.mensualidades).forEach(([mes, valor]) => {
+        const pMes = obtenerEstatusPagoObjeto(valor);
+        if (pMes.status === 'pagado') {
+            desgloseText.push(`• Mensualidad ${obtenerNombreMes(mes)}: LIQUIDADO ($${Sede.mensualidad})`);
+        } else if (pMes.status === 'abonado') {
+            const abono = valor.abono || 0;
+            desgloseText.push(`• Mensualidad ${obtenerNombreMes(mes)}: ABONÓ $${abono} de $${Sede.mensualidad} (Restante: $${Sede.mensualidad - abono})`);
+        }
+    });
+    
+    if (desgloseText.length === 0) {
+        alert("El integrante no cuenta con ningún pago registrado para generar un comprobante.");
+        return;
+    }
+    
+    const mensaje = `Hola ${miembro.tutorNombre}, le saludamos de *${Sede.nombre}*. Adjuntamos el comprobante oficial de pagos registrados para su hijo *${miembro.nombre}* a la fecha ${formatearFechaSencilla(obtenerFechaActualStr())}.\n\n*Detalle de Comprobantes:*\n${desgloseText.join('\n')}\n\n¡Le agradecemos enormemente su pago puntual y la confianza brindada a nuestra institución!`;
+    
+    const formattedPhone = miembro.tutorTelefono.startsWith('52') ? miembro.tutorTelefono : `52${miembro.tutorTelefono}`;
+    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
 }
