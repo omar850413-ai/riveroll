@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '8.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '8.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '9.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '9.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -34,6 +34,9 @@ const state = {
     partidos: [],
     base64Foto: '',
     base64SedeLogo: '',
+    trabajadores: [],
+    actividades: [],
+    tempReporteTipo: 'planilla',
     
     // Variables temporales para el flujo del modal de Abonos
     tempAbonoMiembroId: null,
@@ -205,6 +208,8 @@ function irADetalleSede(sedeId) {
     // Cambiar clases activas de sub-pestañas
     const btnMiembros = document.getElementById('subtab-miembros-btn');
     const btnConta = document.getElementById('subtab-contabilidad-btn');
+    const btnTotales = document.getElementById('subtab-totales-btn');
+    const btnTrabajadores = document.getElementById('subtab-trabajadores-btn');
     
     const sede = state.sedes.find(s => s.id === sedeId);
     if (!sede) return;
@@ -214,6 +219,8 @@ function irADetalleSede(sedeId) {
     // Adaptar colores de las pestañas internas
     btnMiembros.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
     btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+    if (btnTotales) btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+    if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
     
     actualizarEncabezadoDetalleSede();
     
