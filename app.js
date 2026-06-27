@@ -764,7 +764,10 @@ async function saveSede(event) {
     
     const id = document.getElementById('edit-sede-id').value;
     const nombre = document.getElementById('sede-nombre').value;
-    const rubro = document.getElementById('sede-rubro').value;
+    const rubroSelect = document.getElementById('sede-rubro').value;
+    const rubroOtro = document.getElementById('sede-rubro-otro').value;
+    const rubro = rubroSelect === 'otro' ? rubroOtro : rubroSelect;
+    
     const inscripcion = parseFloat(document.getElementById('sede-inscripcion').value);
     const mensualidad = parseFloat(document.getElementById('sede-mensualidad').value);
     const fechaCorte = document.getElementById('sede-corte').value;
@@ -778,16 +781,21 @@ async function saveSede(event) {
         logo: state.base64SedeLogo
     };
     
-    if (id) {
-        await window.db.actualizarSede(id, datosSede);
-    } else {
-        await window.db.agregarSede(datosSede);
+    try {
+        if (id) {
+            await window.db.actualizarSede(id, datosSede);
+        } else {
+            await window.db.agregarSede(datosSede);
+        }
+        
+        document.getElementById('form-sede').reset();
+        document.getElementById('group-rubro-otro').style.display = 'none';
+        state.base64SedeLogo = '';
+        document.getElementById('sede-upload-preview').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='8' fill='%236B7280'>Logo</text></svg>";
+        closeModal('modal-sede');
+    } catch (err) {
+        alert("Error al guardar sede: " + err.message);
     }
-    
-    document.getElementById('form-sede').reset();
-    state.base64SedeLogo = '';
-    document.getElementById('sede-upload-preview').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='8' fill='%236B7280'>Logo</text></svg>";
-    closeModal('modal-sede');
 }
 
 async function eliminarSede(id) {
@@ -870,6 +878,8 @@ function openAddSedeModal() {
     document.getElementById('edit-sede-id').value = "";
     document.getElementById('form-sede').reset();
     document.getElementById('sede-corte').value = "1 al 5 de cada mes";
+    document.getElementById('group-rubro-otro').style.display = 'none';
+    document.getElementById('sede-rubro-otro').required = false;
     state.base64SedeLogo = '';
     document.getElementById('sede-upload-preview').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='8' fill='%236B7280'>Logo</text></svg>";
     document.getElementById('modal-sede').classList.add('active');
@@ -882,7 +892,23 @@ function openEditSedeModal(id) {
     document.getElementById('modal-sede-title').innerText = "Editar Sede / Negocio";
     document.getElementById('edit-sede-id').value = Sede.id;
     document.getElementById('sede-nombre').value = Sede.nombre;
-    document.getElementById('sede-rubro').value = Sede.rubro;
+    
+    const selectRubro = document.getElementById('sede-rubro');
+    const inputOtro = document.getElementById('sede-rubro-otro');
+    const groupOtro = document.getElementById('group-rubro-otro');
+    
+    if (Sede.rubro === 'soccer' || Sede.rubro === 'gym') {
+        selectRubro.value = Sede.rubro;
+        groupOtro.style.display = 'none';
+        inputOtro.required = false;
+        inputOtro.value = '';
+    } else {
+        selectRubro.value = 'otro';
+        groupOtro.style.display = 'block';
+        inputOtro.required = true;
+        inputOtro.value = Sede.rubro;
+    }
+    
     document.getElementById('sede-inscripcion').value = Sede.inscripcion;
     document.getElementById('sede-mensualidad').value = Sede.mensualidad;
     document.getElementById('sede-corte').value = Sede.fechaCorte || '1 al 5 de cada mes';
@@ -891,6 +917,20 @@ function openEditSedeModal(id) {
     document.getElementById('sede-upload-preview').src = Sede.logo || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23111827'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='8' fill='%236B7280'>Logo</text></svg>";
     
     document.getElementById('modal-sede').classList.add('active');
+}
+
+function toggleRubroOtro() {
+    const rubro = document.getElementById('sede-rubro').value;
+    const groupOtro = document.getElementById('group-rubro-otro');
+    const inputOtro = document.getElementById('sede-rubro-otro');
+    if (rubro === 'otro') {
+        groupOtro.style.display = 'block';
+        inputOtro.required = true;
+    } else {
+        groupOtro.style.display = 'none';
+        inputOtro.required = false;
+        inputOtro.value = '';
+    }
 }
 
 function openAddAlumnoModal() {

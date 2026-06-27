@@ -157,8 +157,20 @@ const dbAdapter = {
     // 1. SEDES
     async agregarSede(sede) {
         if (useFirebase && firestoreDb) {
-            const docRef = await firestoreDb.collection('sedes').add(sede);
-            return { id: docRef.id, ...sede };
+            try {
+                const docRef = await firestoreDb.collection('sedes').add(sede);
+                return { id: docRef.id, ...sede };
+            } catch (err) {
+                console.error("Firestore agregarSede error, fallback local:", err);
+                alert("Firebase Error de Escritura (Revisa si tus reglas de base de datos están en modo público): " + err.message + "\n\nSe guardará temporalmente en tu navegador de forma local.");
+                
+                const sedes = this.getSedesLocal();
+                sede.id = 's_' + Date.now();
+                sedes.push(sede);
+                this.saveSedesLocal(sedes);
+                notificarCambio('sedes', sedes);
+                return sede;
+            }
         } else {
             const sedes = this.getSedesLocal();
             sede.id = 's_' + Date.now();
@@ -171,10 +183,15 @@ const dbAdapter = {
 
     async actualizarSede(id, datosActualizados) {
         if (useFirebase && firestoreDb) {
-            const temp = { ...datosActualizados };
-            delete temp.id;
-            await firestoreDb.collection('sedes').doc(id).update(temp);
-            return { id, ...datosActualizados };
+            try {
+                const temp = { ...datosActualizados };
+                delete temp.id;
+                await firestoreDb.collection('sedes').doc(id).update(temp);
+                return { id, ...datosActualizados };
+            } catch (err) {
+                console.error("Firestore actualizarSede error:", err);
+                alert("Error al actualizar en la nube: " + err.message);
+            }
         } else {
             const sedes = this.getSedesLocal();
             const index = sedes.findIndex(s => s.id === id);
@@ -190,7 +207,11 @@ const dbAdapter = {
 
     async eliminarSede(id) {
         if (useFirebase && firestoreDb) {
-            await firestoreDb.collection('sedes').doc(id).delete();
+            try {
+                await firestoreDb.collection('sedes').doc(id).delete();
+            } catch (err) {
+                console.error("Firestore eliminarSede error:", err);
+            }
         } else {
             let sedes = this.getSedesLocal();
             sedes = sedes.filter(s => s.id !== id);
@@ -202,8 +223,20 @@ const dbAdapter = {
     // 2. MIEMBROS / ALUMNOS
     async agregarAlumno(alumno) {
         if (useFirebase && firestoreDb) {
-            const docRef = await firestoreDb.collection('alumnos').add(alumno);
-            return { id: docRef.id, ...alumno };
+            try {
+                const docRef = await firestoreDb.collection('alumnos').add(alumno);
+                return { id: docRef.id, ...alumno };
+            } catch (err) {
+                console.error("Firestore agregarAlumno error, fallback local:", err);
+                alert("Firebase Error: " + err.message + "\nSe guardará localmente.");
+                
+                const alumnos = this.getAlumnosLocal();
+                alumno.id = 'a_' + Date.now();
+                alumnos.push(alumno);
+                this.saveAlumnosLocal(alumnos);
+                notificarCambio('alumnos', alumnos);
+                return alumno;
+            }
         } else {
             const alumnos = this.getAlumnosLocal();
             alumno.id = 'a_' + Date.now();
