@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '18.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '18.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '19.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '19.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -520,11 +520,16 @@ function switchSedeView(viewId) {
             if (btnAsistGym) btnAsistGym.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
             if (pAsistGym) pAsistGym.style.display = 'block';
             
-            const semSelect = document.getElementById('asistencias-semana-select-gym');
-            if (semSelect && !semSelect.value) {
-                semSelect.value = getWeekString(new Date());
+            // Forzar fecha actual y activar modo enfoque
+            document.body.classList.add('focus-attendance-mode');
+            const btnVolverGym = document.getElementById('btn-volver-gym');
+            if (btnVolverGym) btnVolverGym.style.display = 'block';
+            
+            const dateInput = document.getElementById('asistencias-fecha-select-gym');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = obtenerFechaActualStr();
             }
-            actualizarDiasGymDropdown();
+            cargarPaseAsistenciaGym();
         }
     } catch (e) {
         alert("ERROR en switchSedeView: " + e.message + "\nStack: " + e.stack);
@@ -2727,12 +2732,12 @@ function seleccionarCategoria(id) {
     document.getElementById('cat-detalle-nombre').innerText = cat.nombre.toUpperCase();
     document.getElementById('cat-detalle-meta').innerText = `RANGO DE EDAD: ${cat.anioInicio} - ${cat.anioFin} | ENTRENAMIENTOS: ${cat.diasEntrenamiento.join(', ')}`;
     
-    const semSelect = document.getElementById('asistencias-semana-select');
-    if (semSelect && !semSelect.value) {
-        semSelect.value = getWeekString(new Date());
+    const dateInput = document.getElementById('asistencias-fecha-select');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = obtenerFechaActualStr();
     }
     
-    actualizarDiasEntrenamientoDropdown();
+    cargarPaseAsistenciaCategoria();
 }
 
 function volverAListaCategorias() {
@@ -2749,61 +2754,6 @@ function volverAListaCategorias() {
     
     state.activeCategoriaId = null;
     renderCategoriasSidebar();
-}
-
-function actualizarDiasEntrenamientoDropdown() {
-    const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
-    if (!cat) return;
-    
-    const weekSelect = document.getElementById('asistencias-semana-select');
-    if (!weekSelect) return;
-    const weekStr = weekSelect.value;
-    if (!weekStr) return;
-    
-    const weekDates = getDatesOfWeek(weekStr);
-    const diaSelect = document.getElementById('asistencias-dia-select');
-    if (!diaSelect) return;
-    
-    diaSelect.innerHTML = "";
-    cat.diasEntrenamiento.forEach(dia => {
-        const fechaDia = weekDates[dia];
-        const labelFecha = fechaDia ? fechaDia.split('-').slice(1).reverse().join('/') : '';
-        const opt = document.createElement('option');
-        opt.value = fechaDia;
-        opt.innerText = `${dia.toUpperCase()} (${labelFecha})`;
-        diaSelect.appendChild(opt);
-    });
-    
-    cargarPaseAsistenciaCategoria();
-}
-
-function actualizarDiasGymDropdown() {
-    const weekSelect = document.getElementById('asistencias-semana-select-gym');
-    if (!weekSelect) return;
-    const weekStr = weekSelect.value;
-    if (!weekStr) return;
-    
-    // Activar modo enfoque para el Gimnasio
-    document.body.classList.add('focus-attendance-mode');
-    const btnVolverGym = document.getElementById('btn-volver-gym');
-    if (btnVolverGym) btnVolverGym.style.display = 'block';
-    
-    const weekDates = getDatesOfWeek(weekStr);
-    const diaSelect = document.getElementById('asistencias-dia-select-gym');
-    if (!diaSelect) return;
-    
-    const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    diaSelect.innerHTML = "";
-    diasGym.forEach(dia => {
-        const fechaDia = weekDates[dia];
-        const labelFecha = fechaDia ? fechaDia.split('-').slice(1).reverse().join('/') : '';
-        const opt = document.createElement('option');
-        opt.value = fechaDia;
-        opt.innerText = `${dia.toUpperCase()} (${labelFecha})`;
-        diaSelect.appendChild(opt);
-    });
-    
-    cargarPaseAsistenciaGym();
 }
 
 function volverAlMenuGym() {
@@ -2866,31 +2816,31 @@ function cargarPaseAsistenciaCategoria() {
     const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
     if (!cat) return;
     
-    const cabecera = document.getElementById('tabla-asistencia-cabecera');
-    const cuerpo = document.getElementById('tabla-asistencia-cuerpo');
-    if (!cabecera || !cuerpo) return;
+    const container = document.getElementById('lista-asistencia-tarjetas');
+    if (!container) return;
     
-    const weekSelect = document.getElementById('asistencias-semana-select');
-    if (!weekSelect) return;
-    const weekStr = weekSelect.value;
-    if (!weekStr) return;
+    const dateInput = document.getElementById('asistencias-fecha-select');
+    if (!dateInput) return;
+    const fechaSeleccionada = dateInput.value;
+    if (!fechaSeleccionada) return;
     
+    // Obtener la semana y día de la semana correspondientes a la fecha elegida
+    const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
+    const weekStr = getWeekString(fechaObj);
     const weekDates = getDatesOfWeek(weekStr);
     
-    const diaSelect = document.getElementById('asistencias-dia-select');
-    if (!diaSelect) return;
-    const fechaDiaSeleccionado = diaSelect.value;
-    if (!fechaDiaSeleccionado) return;
+    const diasMap = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const diaSemana = diasMap[fechaObj.getDay()];
+    const esDiaEntrenamiento = cat.diasEntrenamiento.includes(diaSemana);
     
-    // Cargar asistencias guardadas
-    const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
-    
+    // Inicializar el borrador semanal si cambió de semana o categoría
     if (!state.asistenciaDraft || state.asistenciaDraft._weekStr !== weekStr || state.asistenciaDraft._catId !== cat.id) {
         state.asistenciaDraft = {
             _weekStr: weekStr,
             _catId: cat.id
         };
         
+        const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
         cat.diasEntrenamiento.forEach(dia => {
             const fDia = weekDates[dia];
             state.asistenciaDraft[fDia] = {};
@@ -2899,12 +2849,26 @@ function cargarPaseAsistenciaCategoria() {
                 state.asistenciaDraft[fDia] = { ...dbDiaEntry.registros };
             }
         });
+        
+        // También pre-cargar la fecha seleccionada si por alguna razón no es día oficial de entrenamiento
+        if (!state.asistenciaDraft[fechaSeleccionada]) {
+            state.asistenciaDraft[fechaSeleccionada] = {};
+            const dbDiaEntry = state.asistencias.find(a => a.fecha === fechaSeleccionada && a.categoriaId === cat.id);
+            if (dbDiaEntry && dbDiaEntry.registros) {
+                state.asistenciaDraft[fechaSeleccionada] = { ...dbDiaEntry.registros };
+            }
+        }
     }
     
-    cabecera.innerHTML = `
-        <th style="text-align: left;">Alumno</th>
-        <th style="text-align: center; width: 150px;">Estatus Asistencia</th>
-    `;
+    container.innerHTML = "";
+    
+    // Si no es día configurado de entrenamiento, mostrar una advertencia amistosa
+    if (!esDiaEntrenamiento) {
+        const warning = document.createElement('div');
+        warning.style = "background: rgba(205,162,80,0.1); border: 1px solid var(--color-accent); color: var(--color-accent); padding: 0.75rem; border-radius: 8px; font-size: 0.8rem; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 0.5rem;";
+        warning.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Hoy es ${diaSemana.toUpperCase()}. No es día de entrenamiento oficial (${cat.diasEntrenamiento.join(', ').toUpperCase()}).`;
+        container.appendChild(warning);
+    }
     
     const alumnosCat = state.alumnos.filter(alu => {
         if (alu.sedeId !== state.activeSedeId) return false;
@@ -2913,33 +2877,33 @@ function cargarPaseAsistenciaCategoria() {
         return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
     });
     
-    cuerpo.innerHTML = "";
     if (alumnosCat.length === 0) {
-        cuerpo.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES QUE CORRESPONDAN AL RANGO DE EDAD DE ESTA CATEGORÍA (${cat.anioInicio}-${cat.anioFin})</td></tr>`;
+        container.innerHTML += `<div style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES QUE CORRESPONDAN AL RANGO DE EDAD DE ESTA CATEGORÍA (${cat.anioInicio}-${cat.anioFin})</div>`;
         return;
     }
     
     alumnosCat.forEach(alu => {
-        const tr = document.createElement('tr');
-        if (!state.asistenciaDraft[fechaDiaSeleccionado]) {
-            state.asistenciaDraft[fechaDiaSeleccionado] = {};
+        if (!state.asistenciaDraft[fechaSeleccionada]) {
+            state.asistenciaDraft[fechaSeleccionada] = {};
         }
-        const estado = state.asistenciaDraft[fechaDiaSeleccionado][alu.id] || 'falta';
+        const estado = state.asistenciaDraft[fechaSeleccionada][alu.id] || 'falta';
         const esAsistencia = estado === 'asistencia';
         const bgBtn = esAsistencia ? 'background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid #10b981;' : 'background-color: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid #ef4444;';
         
-        tr.innerHTML = `
-            <td style="color: #fff; font-weight: 600; text-transform: uppercase;">
-                ${alu.nombre}
-                <div style="font-size: 0.7rem; color: #9ca3af;">AÑO NAC: ${alu.fechaNacimiento ? alu.fechaNacimiento.split('-')[0] : 'N/A'}</div>
-            </td>
-            <td style="text-align: center; vertical-align: middle;">
-                <button type="button" class="btn btn-sm" style="min-width: 120px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${bgBtn}" onclick="toggleAsistenciaDraft('${alu.id}', '${fechaDiaSeleccionado}', this)">
+        const card = document.createElement('div');
+        card.style = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); gap: 1rem;";
+        card.innerHTML = `
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem;">
+                <span style="font-weight: bold; color: #fff; font-size: 0.95rem; text-transform: uppercase; word-break: break-word; line-height: 1.2;">${alu.nombre}</span>
+                <span style="font-size: 0.75rem; color: var(--color-text-muted);">AÑO NAC: ${alu.fechaNacimiento ? alu.fechaNacimiento.split('-')[0] : 'N/A'}</span>
+            </div>
+            <div style="flex-shrink: 0;">
+                <button type="button" class="btn btn-sm" style="min-width: 110px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${bgBtn}" onclick="toggleAsistenciaDraft('${alu.id}', '${fechaSeleccionada}', this)">
                     ${esAsistencia ? 'PRESENTE' : 'FALTA'}
                 </button>
-            </td>
+            </div>
         `;
-        cuerpo.appendChild(tr);
+        container.appendChild(card);
     });
 }
 
@@ -2947,18 +2911,22 @@ async function guardarAsistenciaCategoria() {
     const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
     if (!cat) return;
     
-    const weekStr = document.getElementById('asistencias-semana-select').value;
-    if (!weekStr) return;
+    const dateInput = document.getElementById('asistencias-fecha-select');
+    if (!dateInput) return;
+    const fechaSeleccionada = dateInput.value;
+    if (!fechaSeleccionada) return;
     
-    const weekDates = getDatesOfWeek(weekStr);
+    const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
+    const weekStr = getWeekString(fechaObj);
     
     try {
-        for (const dia of cat.diasEntrenamiento) {
-            const fechaDia = weekDates[dia];
-            const registros = state.asistenciaDraft[fechaDia] || {};
-            
+        // Guardamos todos los días registrados en el borrador de la semana
+        const fechasBorrador = Object.keys(state.asistenciaDraft).filter(k => k !== '_weekStr' && k !== '_catId');
+        
+        for (const f of fechasBorrador) {
+            const registros = state.asistenciaDraft[f] || {};
             await window.db.guardarAsistencia({
-                fecha: fechaDia,
+                fecha: f,
                 semana: weekStr,
                 categoriaId: cat.id,
                 sedeId: state.activeSedeId,
@@ -2974,35 +2942,33 @@ async function guardarAsistenciaCategoria() {
 
 // --- PASE DE ASISTENCIA (GIMNASIO) ---
 function cargarPaseAsistenciaGym() {
-    const cuerpo = document.getElementById('tabla-asistencia-cuerpo-gym');
-    if (!cuerpo) return;
+    const container = document.getElementById('lista-asistencia-tarjetas-gym');
+    if (!container) return;
     
-    const weekSelect = document.getElementById('asistencias-semana-select-gym');
-    if (!weekSelect) return;
-    const weekStr = weekSelect.value;
-    if (!weekStr) return;
+    const dateInput = document.getElementById('asistencias-fecha-select-gym');
+    if (!dateInput) return;
+    const fechaSeleccionada = dateInput.value;
+    if (!fechaSeleccionada) return;
     
+    const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
+    const weekStr = getWeekString(fechaObj);
     const weekDates = getDatesOfWeek(weekStr);
-    const diaSelect = document.getElementById('asistencias-dia-select-gym');
-    if (!diaSelect) return;
-    const fechaDiaSeleccionado = diaSelect.value;
-    if (!fechaDiaSeleccionado) return;
     
     const suscriptores = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
+    container.innerHTML = "";
     
-    cuerpo.innerHTML = "";
     if (suscriptores.length === 0) {
-        cuerpo.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES O SUSCRIPTORES REGISTRADOS EN ESTE GIMNASIO</td></tr>`;
+        container.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES O SUSCRIPTORES REGISTRADOS EN ESTE GIMNASIO</div>`;
         return;
     }
     
-    const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
     const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
     if (!state.asistenciaDraftGym || state.asistenciaDraftGym._weekStr !== weekStr) {
         state.asistenciaDraftGym = {
             _weekStr: weekStr
         };
+        const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
         diasGym.forEach(dia => {
             const fDia = weekDates[dia];
             state.asistenciaDraftGym[fDia] = {};
@@ -3011,45 +2977,57 @@ function cargarPaseAsistenciaGym() {
                 state.asistenciaDraftGym[fDia] = { ...dbDiaEntry.registros };
             }
         });
+        
+        if (!state.asistenciaDraftGym[fechaSeleccionada]) {
+            state.asistenciaDraftGym[fechaSeleccionada] = {};
+            const dbDiaEntry = state.asistencias.find(a => a.fecha === fechaSeleccionada && a.categoriaId === 'gym');
+            if (dbDiaEntry && dbDiaEntry.registros) {
+                state.asistenciaDraftGym[fechaSeleccionada] = { ...dbDiaEntry.registros };
+            }
+        }
     }
     
     suscriptores.forEach(alu => {
-        const tr = document.createElement('tr');
-        if (!state.asistenciaDraftGym[fechaDiaSeleccionado]) {
-            state.asistenciaDraftGym[fechaDiaSeleccionado] = {};
+        if (!state.asistenciaDraftGym[fechaSeleccionada]) {
+            state.asistenciaDraftGym[fechaSeleccionada] = {};
         }
-        const estado = state.asistenciaDraftGym[fechaDiaSeleccionado][alu.id] || 'falta';
+        const estado = state.asistenciaDraftGym[fechaSeleccionada][alu.id] || 'falta';
         const esAsistencia = estado === 'asistencia';
         const bgBtn = esAsistencia ? 'background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid #10b981;' : 'background-color: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid #ef4444;';
         
-        tr.innerHTML = `
-            <td style="color: #fff; font-weight: 600; text-transform: uppercase;">
-                ${alu.nombre}
-            </td>
-            <td style="text-align: center; vertical-align: middle;">
-                <button type="button" class="btn btn-sm" style="min-width: 120px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${bgBtn}" onclick="toggleAsistenciaDraftGym('${alu.id}', '${fechaDiaSeleccionado}', this)">
+        const card = document.createElement('div');
+        card.style = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); gap: 1rem;";
+        card.innerHTML = `
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem;">
+                <span style="font-weight: bold; color: #fff; font-size: 0.95rem; text-transform: uppercase; word-break: break-word; line-height: 1.2;">${alu.nombre}</span>
+                <span style="font-size: 0.75rem; color: var(--color-text-muted);">SUSCRIPTOR ACTIVO</span>
+            </div>
+            <div style="flex-shrink: 0;">
+                <button type="button" class="btn btn-sm" style="min-width: 110px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${bgBtn}" onclick="toggleAsistenciaDraftGym('${alu.id}', '${fechaSeleccionada}', this)">
                     ${esAsistencia ? 'PRESENTE' : 'FALTA'}
                 </button>
-            </td>
+            </div>
         `;
-        cuerpo.appendChild(tr);
+        container.appendChild(card);
     });
 }
 
 async function guardarAsistenciaGym() {
-    const weekStr = document.getElementById('asistencias-semana-select-gym').value;
-    if (!weekStr) return;
+    const dateInput = document.getElementById('asistencias-fecha-select-gym');
+    if (!dateInput) return;
+    const fechaSeleccionada = dateInput.value;
+    if (!fechaSeleccionada) return;
     
-    const weekDates = getDatesOfWeek(weekStr);
-    const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
+    const weekStr = getWeekString(fechaObj);
     
     try {
-        for (const dia of diasGym) {
-            const fechaDia = weekDates[dia];
-            const registros = state.asistenciaDraftGym[fechaDia] || {};
-            
+        const fechasBorrador = Object.keys(state.asistenciaDraftGym).filter(k => k !== '_weekStr');
+        
+        for (const f of fechasBorrador) {
+            const registros = state.asistenciaDraftGym[f] || {};
             await window.db.guardarAsistencia({
-                fecha: fechaDia,
+                fecha: f,
                 semana: weekStr,
                 categoriaId: 'gym',
                 sedeId: state.activeSedeId,

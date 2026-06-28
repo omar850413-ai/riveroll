@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v18') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v18', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v19') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v19', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -362,7 +362,7 @@
                                     </div>
                                     <div style="display: flex; gap: 0.5rem;">
                                         <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('soccer')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
-                                            <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+                        <i class="fa-solid fa-file-pdf"></i> Reporte PDF
                                         </button>
                                         <button class="btn btn-danger btn-sm" onclick="eliminarCategoriaSeleccionada()" style="background: rgba(239, 68, 68, 0.1); color: var(--color-danger); border: 1px solid var(--color-danger);">
                                             <i class="fa-solid fa-trash-can"></i>
@@ -370,31 +370,18 @@
                                     </div>
                                 </div>
 
-                                <!-- Selector de Semana y Día -->
-                                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap;">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
-                                        <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
-                                        <input type="week" id="asistencias-semana-select" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="actualizarDiasEntrenamientoDropdown()">
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
-                                        <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Día:</label>
-                                        <select id="asistencias-dia-select" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaCategoria()"></select>
-                                    </div>
-                                </div>
+                                <!-- Selector de Fecha con Calendario -->
+                                 <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; width: 100%;">
+                                     <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 250px;">
+                                         <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Seleccionar Fecha:</label>
+                                         <input type="date" id="asistencias-fecha-select" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaCategoria()">
+                                     </div>
+                                 </div>
 
-                                <!-- Tabla de Asistencia Semanal -->
-                                <div class="table-container" style="overflow-x: auto; margin-bottom: 1.5rem;">
-                                    <table class="accounting-table" style="min-width: 600px;">
-                                        <thead>
-                                            <tr id="tabla-asistencia-cabecera">
-                                                <!-- Dinámico -->
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabla-asistencia-cuerpo">
-                                            <!-- Dinámico -->
-                                        </tbody>
-                                    </table>
-                                </div>
+                                 <!-- Contenedor Responsivo del Listado de Alumnos (Sin scroll horizontal) -->
+                                 <div id="lista-asistencia-tarjetas" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; width: 100%;">
+                                     <!-- Dinámico -->
+                                 </div>
 
                                 <button class="btn btn-primary" onclick="guardarAsistenciaCategoria()" style="width: 100%; font-weight: bold; background: var(--color-accent); color: #000;">
                                     <i class="fa-solid fa-floppy-disk"></i> Guardar Asistencias de la Semana
@@ -418,31 +405,17 @@
                             </button>
                         </div>
 
-                        <!-- Selector de Semana para Gym y Día -->
-                        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
-                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
-                                <input type="week" id="asistencias-semana-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="actualizarDiasGymDropdown()">
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
-                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Día:</label>
-                                <select id="asistencias-dia-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()"></select>
+                        <!-- Selector de Fecha con Calendario para Gym -->
+                        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 250px;">
+                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Seleccionar Fecha:</label>
+                                <input type="date" id="asistencias-fecha-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()">
                             </div>
                         </div>
 
-                        <!-- Tabla de Asistencia Gym (Un solo día) -->
-                        <div class="table-container" style="overflow-x: auto; margin-bottom: 1.5rem;">
-                            <table class="accounting-table" style="min-width: 500px;">
-                                <thead>
-                                    <tr id="tabla-asistencia-cabecera-gym">
-                                        <th style="text-align: left;">Integrante</th>
-                                        <th style="text-align: center; width: 150px;">Estatus Asistencia</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-asistencia-cuerpo-gym">
-                                    <!-- Dinámico -->
-                                </tbody>
-                            </table>
+                        <!-- Contenedor Responsivo del Listado de Integrantes Gym (Sin scroll horizontal) -->
+                        <div id="lista-asistencia-tarjetas-gym" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; width: 100%;">
+                            <!-- Dinámico -->
                         </div>
 
                         <button class="btn btn-primary" onclick="guardarAsistenciaGym()" style="width: 100%; font-weight: bold; background: var(--color-accent); color: #000;">
@@ -1070,7 +1043,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=18"></script>
-    <script src="app.js?v=18"></script>
+    <script src="db.js?v=19"></script>
+    <script src="app.js?v=19"></script>
 </body>
 </html>
