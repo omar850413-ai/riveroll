@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Club Jaguares Atlético River</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body>
+
+    <!-- Overlay de Autenticación / Registro -->
+    <div id="auth-overlay" class="modal-overlay active" style="z-index: 2000; position: fixed;">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h2 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase;">
+                <i class="fa-solid fa-shield-halved" style="color: var(--color-orange);"></i> Acceso Club Jaguares
+            </h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Ingresa con tu correo autorizado para ver la comunidad y streaming.</p>
+            
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                <div class="form-group" style="margin-bottom: 1rem; text-align: left;">
+                    <label style="font-size: 0.8rem; color: #fff;"><i class="fa-solid fa-envelope"></i> Correo Electrónico</label>
+                    <input type="email" id="auth-email" class="form-control" required placeholder="tuemail@ejemplo.com">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem; text-align: left;">
+                    <label style="font-size: 0.8rem; color: #fff;"><i class="fa-solid fa-lock"></i> Contraseña</label>
+                    <input type="password" id="auth-password" class="form-control" required placeholder="••••••••">
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">Iniciar Sesión</button>
+                    <button type="button" onclick="toggleAuthMode()" id="auth-toggle-btn" class="btn btn-outline" style="width: 100%; font-size: 0.8rem;">¿No tienes cuenta? Regístrate aquí</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Encabezado Principal -->
+        <header class="main-header">
+            <div class="logo-container">
+                <img src="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=120" alt="Jaguares Logo" class="logo-img" onerror="this.src='https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=120'">
+                <h1 class="club-title">Jaguares Club</h1>
+            </div>
+            <div>
+                <button class="btn btn-outline btn-sm" onclick="handleLogout()" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; border-radius: 8px;">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- PANEL DE VISTA: MURO (SOCIAL FEED) -->
+        <main id="view-muro" class="view-panel active">
+            <div id="posts-container">
+                <!-- Posts Dinámicos -->
+            </div>
+            <!-- Botón flotante para publicar -->
+            <button class="fab" onclick="abrirModalCrearPost()">
+                <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+        </main>
+
+        <!-- PANEL DE VISTA: PANINI (ÁLBUM DE ESTAMPAS) -->
+        <main id="view-panini" class="view-panel">
+            <div class="category-filter-bar" id="panini-category-filters">
+                <!-- Filtros dinámicos -->
+            </div>
+            <div class="panini-grid" id="panini-cards-grid">
+                <!-- Estampas Panini dinámicas -->
+            </div>
+        </main>
+
+        <!-- PANEL DE VISTA: LIVE STREAMING -->
+        <main id="view-live" class="view-panel">
+            <div class="stream-container" id="video-stream-container">
+                <!-- Reproductor o placeholder -->
+                <div class="stream-placeholder" id="stream-inactive-placeholder">
+                    <i class="fa-solid fa-tower-broadcast"></i>
+                    <p>No hay transmisiones activas en este momento</p>
+                    <button class="btn btn-primary btn-sm" onclick="abrirModalIniciarStream()" id="btn-iniciar-stream-trigger" style="display: none;">
+                        <i class="fa-solid fa-plus"></i> Iniciar Transmisión
+                    </button>
+                </div>
+                <div id="stream-active-view" style="display: none; width: 100%; height: 100%;">
+                    <!-- iframe para stream externo -->
+                    <iframe id="stream-iframe" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+                </div>
+            </div>
+
+            <!-- Chat del partido en vivo -->
+            <div class="chat-container">
+                <h5 style="color: #fff; font-size: 0.9rem; margin-bottom: 0.5rem; font-family: var(--font-title); display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="width: 8px; height: 8px; background: var(--color-green); border-radius: 50%; display: inline-block;"></span>
+                    Chat en Vivo del Partido
+                </h5>
+                <div class="chat-messages" id="chat-messages-container">
+                    <!-- Comentarios del chat -->
+                </div>
+                <form id="chat-form" onsubmit="enviarMensajeChat(event)" class="comment-input-row">
+                    <input type="text" id="chat-input" class="form-control" placeholder="Escribe un mensaje de apoyo..." required autocomplete="off">
+                    <button type="submit" class="btn btn-primary" style="padding: 0 1rem;"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </main>
+
+        <!-- Barra de Navegación Inferior -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchView('muro', this)">
+                <i class="fa-solid fa-house-chimney"></i>
+                <span>Comunidad</span>
+            </button>
+            <button class="nav-item" onclick="switchView('panini', this)">
+                <i class="fa-solid fa-id-card"></i>
+                <span>Panini</span>
+            </button>
+            <button class="nav-item" onclick="switchView('live', this)">
+                <i class="fa-solid fa-circle-play"></i>
+                <span>En Vivo</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODAL: CREAR POST -->
+    <div id="modal-crear-post" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-images"></i> Compartir con la Comunidad</h3>
+                <button class="modal-close" onclick="cerrarModalCrearPost()">&times;</button>
+            </div>
+            <form id="form-crear-post" onsubmit="guardarPost(event)">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <textarea id="post-input-text" class="form-control" placeholder="¿Qué está pasando en el Club Jaguares?" rows="4" required style="resize: none;"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;"><i class="fa-solid fa-link"></i> Enlace de Foto o Video (Opcional)</label>
+                    <input type="url" id="post-input-media" class="form-control" placeholder="https://ejemplo.com/foto.jpg">
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="cerrarModalCrearPost()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Publicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR ESTAMPA PANINI (SOLO ADMINS) -->
+    <div id="modal-editar-panini" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-edit"></i> Editar Tarjeta Panini</h3>
+                <button class="modal-close" onclick="closeModal('modal-editar-panini')">&times;</button>
+            </div>
+            <form id="form-editar-panini" onsubmit="guardarDatosPanini(event)">
+                <input type="hidden" id="edit-panini-id">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.8rem; color: #fff;">Apodo / Nombre Deportivo</label>
+                    <input type="text" id="edit-panini-apodo" class="form-control" required placeholder="Ej: El Tanque">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.8rem; color: #fff;">Posición</label>
+                    <select id="edit-panini-posicion" class="form-control" required>
+                        <option value="Portero">Portero</option>
+                        <option value="Defensa">Defensa</option>
+                        <option value="Mediocampista">Mediocampista</option>
+                        <option value="Delantero">Delantero</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.8rem; color: #fff;">Número de Camiseta</label>
+                    <input type="number" id="edit-panini-camiseta" class="form-control" required min="1" max="99">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label style="font-size: 0.8rem; color: #fff;">Foto URL (Directa)</label>
+                    <input type="url" id="edit-panini-foto" class="form-control" required placeholder="https://ejemplo.com/foto-nene.jpg">
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-editar-panini')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Ficha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: INICIAR TRANSMISIÓN -->
+    <div id="modal-iniciar-stream" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-plus"></i> Iniciar Partido en Vivo</h3>
+                <button class="modal-close" onclick="closeModal('modal-iniciar-stream')">&times;</button>
+            </div>
+            <form id="form-iniciar-stream" onsubmit="guardarNuevaTransmision(event)">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.8rem; color: #fff;">Nombre del Partido / Título</label>
+                    <input type="text" id="stream-titulo" class="form-control" required placeholder="Ej: Jaguares vs Riveroll FC">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label style="font-size: 0.8rem; color: #fff;">Enlace del En Vivo (YouTube embed o URL directa)</label>
+                    <input type="url" id="stream-url" class="form-control" required placeholder="https://www.youtube.com/embed/LIVE_ID_HERE">
+                    <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 0.25rem;">Usa el link de inserción (embed) para que se visualice directo dentro de la app.</small>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-iniciar-stream')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Iniciar En Vivo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts de Lógica -->
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
