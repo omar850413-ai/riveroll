@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '19.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '19.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '20.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '20.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -195,6 +195,22 @@ function suscribirColecciones() {
             renderSedes();
             actualizarSelectoresFiltros();
             if (state.activeSedeId) actualizarEncabezadoDetalleSede();
+            
+            // RESTAURAR ESTADO DE NAVEGACIÓN ANTE RECARGA ACCIDENTAL
+            const savedSedeId = localStorage.getItem('riveroll_active_sede_id');
+            if (savedSedeId && nuevasSedes.some(s => s.id === savedSedeId)) {
+                ejecutarIrADetalleSinPush(savedSedeId);
+                const savedSubView = localStorage.getItem('riveroll_active_sub_view');
+                if (savedSubView) {
+                    switchSedeView(savedSubView);
+                    if (savedSubView === 'categorias') {
+                        const savedCatId = localStorage.getItem('riveroll_active_categoria_id');
+                        if (savedCatId) {
+                            seleccionarCategoria(savedCatId);
+                        }
+                    }
+                }
+            }
         });
 
         window.db.suscribir('alumnos', (nuevosAlumnos) => {
@@ -346,6 +362,11 @@ function ejecutarIrADetalleSinPush(sedeId) {
     state.activeSedeId = sedeId;
     state.activeSedeSubView = 'miembros';
     
+    // Guardar estado en localStorage
+    localStorage.setItem('riveroll_active_sede_id', sedeId);
+    localStorage.setItem('riveroll_active_sub_view', 'miembros');
+    localStorage.removeItem('riveroll_active_categoria_id');
+    
     const btnMiembros = document.getElementById('subtab-miembros-btn');
     const btnConta = document.getElementById('subtab-contabilidad-btn');
     const btnTotales = document.getElementById('subtab-totales-btn');
@@ -392,6 +413,12 @@ function ejecutarVolverAlDashboardSinPush() {
     apagarCamara();
     apagarCamaraTrabajador();
     
+    // Limpiar estado en localStorage
+    localStorage.removeItem('riveroll_active_sede_id');
+    localStorage.removeItem('riveroll_active_sub_view');
+    localStorage.removeItem('riveroll_active_categoria_id');
+    document.body.classList.remove('focus-attendance-mode');
+    
     document.getElementById('panel-detalle-sede').classList.remove('active');
     document.getElementById('panel-dashboard').classList.add('active');
     renderSedes();
@@ -423,6 +450,7 @@ function actualizarEncabezadoDetalleSede() {
 function switchSedeView(viewId) {
     try {
         state.activeSedeSubView = viewId;
+        localStorage.setItem('riveroll_active_sub_view', viewId);
         
         const btnMiembros = document.getElementById('subtab-miembros-btn');
         const btnConta = document.getElementById('subtab-contabilidad-btn');
@@ -2691,12 +2719,14 @@ function renderCategoriasSidebar() {
     cats.forEach(c => {
         const btn = document.createElement('button');
         btn.type = "button";
-        btn.className = `btn btn-outline btn-full ${state.activeCategoriaId === c.id ? 'active' : ''}`;
-        btn.style = `text-align: left; padding: 0.75rem 1rem; border-color: ${state.activeCategoriaId === c.id ? 'var(--color-accent)' : 'var(--border-color)'}; margin-bottom: 0.5rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.25rem; text-transform: uppercase;`;
+        const isActive = state.activeCategoriaId === c.id;
+        btn.className = `btn btn-full ${isActive ? 'active' : ''}`;
+        
+        btn.style = `text-align: left; padding: 0.85rem 1.1rem; border: 1px solid ${isActive ? '#f97316' : '#ea580c'}; background: ${isActive ? 'linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important' : 'rgba(234, 88, 12, 0.08) !important'}; margin-bottom: 0.75rem; font-size: 0.95rem; display: flex; flex-direction: column; gap: 0.35rem; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
         
         btn.innerHTML = `
-            <strong style="color: #fff;">${c.nombre}</strong>
-            <span style="font-size: 0.7rem; color: var(--color-text-muted);"><i class="fa-solid fa-calendar"></i> RANGO: ${c.anioInicio}-${c.anioFin} (${c.diasEntrenamiento.join(', ')})</span>
+            <strong style="color: #fff; font-size: 1.05rem; font-weight: bold;">${c.nombre}</strong>
+            <span style="font-size: 0.75rem; color: ${isActive ? '#ffe4e6' : '#fdba74'}; font-weight: 500;"><i class="fa-solid fa-calendar"></i> RANGO: ${c.anioInicio}-${c.anioFin} (${c.diasEntrenamiento.join(', ')})</span>
         `;
         
         btn.onclick = () => seleccionarCategoria(c.id);
@@ -2706,6 +2736,7 @@ function renderCategoriasSidebar() {
 
 function seleccionarCategoria(id) {
     state.activeCategoriaId = id;
+    localStorage.setItem('riveroll_active_categoria_id', id);
     renderCategoriasSidebar();
     
     // Activar modo enfoque (ocultar cabeceras y menús)
@@ -2743,6 +2774,7 @@ function seleccionarCategoria(id) {
 function volverAListaCategorias() {
     // Desactivar modo enfoque
     document.body.classList.remove('focus-attendance-mode');
+    localStorage.removeItem('riveroll_active_categoria_id');
     
     document.getElementById('categorias-sidebar-col').style.display = 'block';
     document.getElementById('categorias-detalle-container').style.display = 'none';

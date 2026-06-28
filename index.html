@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v19') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v19', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v20') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v20', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -334,10 +334,10 @@
                     <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: flex-start;" id="categorias-layout-grid">
                         <!-- Columna Izquierda: Categorías -->
                         <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;" id="categorias-sidebar-col">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-folder-tree"></i> Categorías</h4>
-                                <button class="btn btn-accent btn-sm" onclick="openAddCategoriaModal()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">
-                                    <i class="fa-solid fa-plus"></i> Crear
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                                <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.25rem; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fa-solid fa-folder-tree"></i> Categorías</h4>
+                                <button class="btn btn-accent" onclick="openAddCategoriaModal()" style="width: 100%; padding: 0.75rem 1rem; font-size: 1rem; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important; border: none !important; color: #fff !important; font-weight: bold; border-radius: 12px; box-shadow: 0 4px 12px rgba(249,115,22,0.25); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <i class="fa-solid fa-folder-plus"></i> Crear Nueva Categoría
                                 </button>
                             </div>
                             <div id="categorias-lista-sidebar" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
@@ -1043,7 +1043,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=19"></script>
-    <script src="app.js?v=19"></script>
+    <script src="db.js?v=20"></script>
+    <script src="app.js?v=20"></script>
 </body>
 </html>
