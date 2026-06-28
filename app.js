@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '13.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '13.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '14.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '14.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -2553,7 +2553,7 @@ function cargarPaseAsistenciaCategoria() {
     const alumnosCat = state.alumnos.filter(alu => {
         if (alu.entidadId !== state.activeSedeId) return false;
         if (!alu.fechaNacimiento) return false;
-        const anioNac = new Date(alu.fechaNacimiento).getFullYear();
+        const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
         return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
     });
     
@@ -2571,7 +2571,7 @@ function cargarPaseAsistenciaCategoria() {
         let html = `
             <td style="color: #fff; font-weight: 600; text-transform: uppercase;">
                 ${alu.nombre}
-                <div style="font-size: 0.7rem; color: #9ca3af;">AÑO NAC: ${new Date(alu.fechaNacimiento).getFullYear()}</div>
+                <div style="font-size: 0.7rem; color: #9ca3af;">AÑO NAC: ${alu.fechaNacimiento ? alu.fechaNacimiento.split('-')[0] : 'N/A'}</div>
             </td>
         `;
         
@@ -2605,7 +2605,7 @@ async function guardarAsistenciaCategoria() {
     const alumnosCat = state.alumnos.filter(alu => {
         if (alu.entidadId !== state.activeSedeId) return false;
         if (!alu.fechaNacimiento) return false;
-        const anioNac = new Date(alu.fechaNacimiento).getFullYear();
+        const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
         return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
     });
     
@@ -2741,7 +2741,7 @@ function descargarAsistenciasPDF(tipo) {
         alumnos = state.alumnos.filter(alu => {
             if (alu.entidadId !== state.activeSedeId) return false;
             if (!alu.fechaNacimiento) return false;
-            const anioNac = new Date(alu.fechaNacimiento).getFullYear();
+            const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
             return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
         });
         
