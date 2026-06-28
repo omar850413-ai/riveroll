@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v22') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v22', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v23') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v23', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -407,9 +407,15 @@
 
                         <!-- Selector de Fecha con Calendario para Gym -->
                         <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; width: 100%;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 250px;">
-                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Seleccionar Fecha:</label>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-calendar-day"></i> Fecha:</label>
                                 <input type="date" id="asistencias-fecha-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-clock"></i> Horario:</label>
+                                <select id="asistencias-horario-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()">
+                                    <option value="">TODOS LOS HORARIOS</option>
+                                </select>
                             </div>
                         </div>
 
@@ -638,9 +644,15 @@
                 </div>
                 
                 <div id="group-gimnasio-extra" style="display: none; margin-bottom: 1.25rem;">
-                    <div class="form-group">
-                        <label for="alumno-telefono-suscriptor"><i class="fa-solid fa-phone"></i> Teléfono del Suscriptor</label>
-                        <input type="tel" id="alumno-telefono-suscriptor" class="form-control" placeholder="Ej: 5559876543" pattern="[0-9]{10}">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="margin: 0;">
+                            <label for="alumno-telefono-suscriptor"><i class="fa-solid fa-phone"></i> Teléfono del Suscriptor</label>
+                            <input type="tel" id="alumno-telefono-suscriptor" class="form-control" placeholder="Ej: 5559876543" pattern="[0-9]{10}">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label for="alumno-horario"><i class="fa-solid fa-clock"></i> Horario de Entrenamiento</label>
+                            <input type="text" id="alumno-horario" class="form-control" placeholder="Ej: 6:00 AM o 7:00 PM">
+                        </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
@@ -1033,7 +1045,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=22"></script>
-    <script src="app.js?v=22"></script>
+    <script src="db.js?v=23"></script>
+    <script src="app.js?v=23"></script>
 </body>
 </html>

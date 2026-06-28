@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '22.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '22.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '23.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '23.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -1073,6 +1073,7 @@ async function saveAlumno(event) {
     const telefonoSuscriptor = document.getElementById('alumno-telefono-suscriptor') ? document.getElementById('alumno-telefono-suscriptor').value : '';
     const emergenciaNombre = document.getElementById('alumno-emergencia-nombre') ? document.getElementById('alumno-emergencia-nombre').value : '';
     const emergenciaTelefono = document.getElementById('alumno-emergencia-telefono') ? document.getElementById('alumno-emergencia-telefono').value : '';
+    const horario = document.getElementById('alumno-horario') ? document.getElementById('alumno-horario').value.trim() : '';
     
     // Obtener rama activa de fútbol si existe
     let rama = 'Mixto';
@@ -1100,6 +1101,7 @@ async function saveAlumno(event) {
         telefonoSuscriptor,
         emergenciaNombre,
         emergenciaTelefono,
+        horario,
         
         foto: state.base64Foto,
         pagos: id ? state.alumnos.find(a => a.id === id).pagos : {
@@ -1393,6 +1395,9 @@ function openEditAlumnoModal(id) {
         document.getElementById('alumno-telefono-suscriptor').value = alumno.telefonoSuscriptor || '';
         document.getElementById('alumno-emergencia-nombre').value = alumno.emergenciaNombre || '';
         document.getElementById('alumno-emergencia-telefono').value = alumno.emergenciaTelefono || '';
+        if (document.getElementById('alumno-horario')) {
+            document.getElementById('alumno-horario').value = alumno.horario || '';
+        }
     }
     
     state.base64Foto = alumno.foto || '';
@@ -2997,10 +3002,40 @@ function cargarPaseAsistenciaGym() {
     const weekDates = getDatesOfWeek(weekStr);
     
     const suscriptores = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
+    
+    // 1. Obtener todos los horarios únicos de los suscriptores activos para llenar el selector
+    const selectHorario = document.getElementById('asistencias-horario-select-gym');
+    if (selectHorario) {
+        const valorActual = selectHorario.value;
+        const horariosUnicos = [...new Set(suscriptores.map(a => a.horario || '').filter(h => h.trim() !== ''))];
+        
+        // Solo regenerar si las opciones han cambiado
+        const currentOptions = Array.from(selectHorario.options).map(o => o.value).filter(v => v !== '');
+        const changed = currentOptions.length !== horariosUnicos.length || !horariosUnicos.every(h => currentOptions.includes(h));
+        
+        if (changed) {
+            selectHorario.innerHTML = '<option value="">TODOS LOS HORARIOS</option>';
+            horariosUnicos.sort().forEach(h => {
+                const opt = document.createElement('option');
+                opt.value = h;
+                opt.innerText = h.toUpperCase();
+                selectHorario.appendChild(opt);
+            });
+            if (horariosUnicos.includes(valorActual)) {
+                selectHorario.value = valorActual;
+            }
+        }
+    }
+
+    const horarioFiltrado = selectHorario ? selectHorario.value : '';
+    const suscriptoresFiltrados = horarioFiltrado 
+        ? suscriptores.filter(alu => (alu.horario || '').toLowerCase() === horarioFiltrado.toLowerCase())
+        : suscriptores;
+
     container.innerHTML = "";
     
-    if (suscriptores.length === 0) {
-        container.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES O SUSCRIPTORES REGISTRADOS EN ESTE GIMNASIO</div>`;
+    if (suscriptoresFiltrados.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES O SUSCRIPTORES REGISTRADOS EN ESTE GIMNASIO CON EL CRITERIO SELECCIONADO</div>`;
         return;
     }
     
@@ -3029,7 +3064,7 @@ function cargarPaseAsistenciaGym() {
         }
     }
     
-    suscriptores.forEach(alu => {
+    suscriptoresFiltrados.forEach(alu => {
         if (!state.asistenciaDraftGym[fechaSeleccionada]) {
             state.asistenciaDraftGym[fechaSeleccionada] = {};
         }
@@ -3042,7 +3077,7 @@ function cargarPaseAsistenciaGym() {
         card.innerHTML = `
             <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem;">
                 <span style="font-weight: bold; color: #fff; font-size: 0.95rem; text-transform: uppercase; word-break: break-word; line-height: 1.2;">${alu.nombre}</span>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted);">SUSCRIPTOR ACTIVO</span>
+                <span style="font-size: 0.75rem; color: var(--color-text-muted);">SUSCRIPTOR ACTIVO ${alu.horario ? `| HORARIO: ${alu.horario.toUpperCase()}` : ''}</span>
             </div>
             <div style="flex-shrink: 0;">
                 <button type="button" class="btn btn-sm" style="min-width: 110px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${bgBtn}" onclick="toggleAsistenciaDraftGym('${alu.id}', '${fechaSeleccionada}', this)">
