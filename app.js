@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '15.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '15.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '16.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '16.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -1653,6 +1653,158 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
                 Reporte de totales generado el ${formatearFechaSencilla(obtenerFechaActualStr())}. Corporativo Riveroll.
             </div>
         `;
+    } else if (tipo === 'soccer') {
+        const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+        if (!cat) return;
+        const weekStr = document.getElementById('asistencias-semana-select').value;
+        const weekDates = getDatesOfWeek(weekStr);
+        const alumnosCat = state.alumnos.filter(alu => {
+            if (alu.sedeId !== state.activeSedeId) return false;
+            if (!alu.fechaNacimiento) return false;
+            const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
+            return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
+        });
+
+        const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
+
+        let diasHeaders = '';
+        cat.diasEntrenamiento.forEach(dia => {
+            const fechaDia = weekDates[dia];
+            const labelFecha = fechaDia ? fechaDia.split('-').slice(1).join('/') : '';
+            diasHeaders += `<th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; text-align: center; font-size: 0.8rem;">${dia}<br><small style="color: #666; font-size: 0.65rem;">${labelFecha}</small></th>`;
+        });
+
+        let filas = '';
+        if (alumnosCat.length === 0) {
+            filas = `<tr><td colspan="${cat.diasEntrenamiento.length + 2}" style="text-align: center; padding: 1.5rem; color: #555;">No hay alumnos registrados en el rango de esta categoría (${cat.anioInicio}-${cat.anioFin}).</td></tr>`;
+        } else {
+            alumnosCat.forEach(alu => {
+                let asistColumnas = '';
+                let faltasSemanales = 0;
+                cat.diasEntrenamiento.forEach(dia => {
+                    const fechaDia = weekDates[dia];
+                    const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
+                    const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
+                    if (estado === 'asistencia') {
+                        asistColumnas += `<td style="padding: 0.5rem; border-bottom: 1px solid #eee; text-align: center; color: #10b981; font-weight: bold; font-size: 0.85rem;">SI</td>`;
+                    } else {
+                        asistColumnas += `<td style="padding: 0.5rem; border-bottom: 1px solid #eee; text-align: center; color: #ef4444; font-weight: bold; font-size: 0.85rem;">NO</td>`;
+                        faltasSemanales++;
+                    }
+                });
+
+                filas += `
+                    <tr>
+                        <td style="padding: 0.6rem; font-weight: bold; border-bottom: 1px solid #eee; color: #000; text-transform: uppercase; font-size: 0.85rem;">
+                            ${alu.nombre}
+                            <small style="display:block; color: #666; font-size: 0.65rem;">AÑO NAC: ${alu.fechaNacimiento ? alu.fechaNacimiento.split('-')[0] : 'N/A'}</small>
+                        </td>
+                        ${asistColumnas}
+                        <td style="padding: 0.6rem; border-bottom: 1px solid #eee; text-align: center; font-weight: bold; color: ${faltasSemanales > 0 ? '#ef4444' : '#10b981'}; font-size: 0.85rem;">${faltasSemanales}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        bodyHtml = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
+                <div>
+                    <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
+                    <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Categoría: ${cat.nombre.toUpperCase()} | Rango de Edad: ${cat.anioInicio}-${cat.anioFin}</p>
+                    <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.85rem; font-weight: bold;">SEMANA: ${weekStr}</p>
+                </div>
+                <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+            </div>
+            
+            <h4 style="margin-bottom: 1rem; font-weight: bold; text-transform: uppercase; color: #000; font-size: 1.1rem; text-align: center;">Control de Asistencia Semanal</h4>
+            <table style="width: 100%; border-collapse: collapse; color: #000;">
+                <thead>
+                    <tr style="text-align: left;">
+                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; font-size: 0.85rem;">Alumno</th>
+                        ${diasHeaders}
+                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; text-align: center; font-size: 0.85rem;">Faltas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas}
+                </tbody>
+            </table>
+            <div style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-size: 0.8rem; color: #666; text-align: center;">
+                Reporte de asistencias generado el ${formatearFechaSencilla(obtenerFechaActualStr())}. Corporativo Riveroll.
+            </div>
+        `;
+    } else if (tipo === 'gym') {
+        const weekStr = document.getElementById('asistencias-semana-select-gym').value;
+        const weekDates = getDatesOfWeek(weekStr);
+        const alumnosGym = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
+        const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
+        const diasEntrenamiento = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+        let diasHeaders = '';
+        diasEntrenamiento.forEach(dia => {
+            const fechaDia = weekDates[dia];
+            const labelFecha = fechaDia ? fechaDia.split('-').slice(1).join('/') : '';
+            diasHeaders += `<th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; text-align: center; font-size: 0.8rem;">${dia.substring(0,3)}<br><small style="color: #666; font-size: 0.65rem;">${labelFecha}</small></th>`;
+        });
+
+        let filas = '';
+        if (alumnosGym.length === 0) {
+            filas = `<tr><td colspan="8" style="text-align: center; padding: 1.5rem; color: #555;">No hay integrantes registrados en el gimnasio.</td></tr>`;
+        } else {
+            alumnosGym.forEach(alu => {
+                let asistColumnas = '';
+                let faltasSemanales = 0;
+                diasEntrenamiento.forEach(dia => {
+                    const fechaDia = weekDates[dia];
+                    const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
+                    const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
+                    if (estado === 'asistencia') {
+                        asistColumnas += `<td style="padding: 0.5rem; border-bottom: 1px solid #eee; text-align: center; color: #10b981; font-weight: bold; font-size: 0.85rem;">SI</td>`;
+                    } else {
+                        asistColumnas += `<td style="padding: 0.5rem; border-bottom: 1px solid #eee; text-align: center; color: #ef4444; font-weight: bold; font-size: 0.85rem;">NO</td>`;
+                        faltasSemanales++;
+                    }
+                });
+
+                filas += `
+                    <tr>
+                        <td style="padding: 0.6rem; font-weight: bold; border-bottom: 1px solid #eee; color: #000; text-transform: uppercase; font-size: 0.85rem;">
+                            ${alu.nombre}
+                        </td>
+                        ${asistColumnas}
+                        <td style="padding: 0.6rem; border-bottom: 1px solid #eee; text-align: center; font-weight: bold; color: ${faltasSemanales > 0 ? '#ef4444' : '#10b981'}; font-size: 0.85rem;">${faltasSemanales}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        bodyHtml = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
+                <div>
+                    <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
+                    <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Registro General de Asistencias - Gimnasio</p>
+                    <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.85rem; font-weight: bold;">SEMANA: ${weekStr}</p>
+                </div>
+                <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+            </div>
+            
+            <h4 style="margin-bottom: 1rem; font-weight: bold; text-transform: uppercase; color: #000; font-size: 1.1rem; text-align: center;">Reporte General de Asistencias</h4>
+            <table style="width: 100%; border-collapse: collapse; color: #000;">
+                <thead>
+                    <tr style="text-align: left;">
+                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; font-size: 0.85rem;">Integrante</th>
+                        ${diasHeaders}
+                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; text-align: center; font-size: 0.85rem;">Faltas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas}
+                </tbody>
+            </table>
+            <div style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-size: 0.8rem; color: #666; text-align: center;">
+                Reporte de asistencias generado el ${formatearFechaSencilla(obtenerFechaActualStr())}. Corporativo Riveroll.
+            </div>
+        `;
     }
     
     printContent.innerHTML = bodyHtml;
@@ -1666,17 +1818,19 @@ function descargarReportePDF(tipo = 'planilla') {
     // Primero preparamos el reporte en el modal
     abrirVistaPreviaReporte(tipo);
     
-    // Generar el PDF directamente con html2pdf
     const element = document.getElementById('reporte-print-content');
+    const esHorizontal = (tipo === 'soccer' || tipo === 'gym');
+    
+    let filename = `Reporte_${tipo === 'planilla' ? 'Cobros' : tipo === 'totales' ? 'Finanzas' : 'Asistencias'}_${Sede.nombre.replace(/\s+/g, '_')}.pdf`;
+    
     const opt = {
-        margin:       [0.4, 0.4, 0.4, 0.4],
-        filename:     `Reporte_${tipo === 'planilla' ? 'Cobros' : 'Finanzas'}_${Sede.nombre.replace(/\s+/g, '_')}.pdf`,
+        margin:       [0.3, 0.3, 0.3, 0.3],
+        filename:     filename,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, backgroundColor: '#ffffff', logging: false },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        jsPDF:        { unit: 'in', format: 'letter', orientation: esHorizontal ? 'landscape' : 'portrait' }
     };
     
-    // Ejecutar la conversión y descarga de forma fluida
     html2pdf().set(opt).from(element).save().then(() => {
         console.log("PDF generado y descargado con éxito.");
     });
@@ -2556,7 +2710,7 @@ function cargarPaseAsistenciaCategoria() {
     
     // 2. Filtrar Alumnos por Categoría
     const alumnosCat = state.alumnos.filter(alu => {
-        if (alu.entidadId !== state.activeSedeId) return false;
+        if (alu.sedeId !== state.activeSedeId) return false;
         if (!alu.fechaNacimiento) return false;
         const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
         return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
@@ -2608,7 +2762,7 @@ async function guardarAsistenciaCategoria() {
     const weekDates = getDatesOfWeek(weekStr);
     
     const alumnosCat = state.alumnos.filter(alu => {
-        if (alu.entidadId !== state.activeSedeId) return false;
+        if (alu.sedeId !== state.activeSedeId) return false;
         if (!alu.fechaNacimiento) return false;
         const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
         return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
@@ -2651,7 +2805,7 @@ function cargarPaseAsistenciaGym() {
     const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
     // Filtrar suscriptores del gimnasio
-    const suscriptores = state.alumnos.filter(alu => alu.entidadId === state.activeSedeId);
+    const suscriptores = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
     
     cuerpo.innerHTML = "";
     if (suscriptores.length === 0) {
@@ -2694,7 +2848,7 @@ async function guardarAsistenciaGym() {
     const weekDates = getDatesOfWeek(weekStr);
     const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
-    const suscriptores = state.alumnos.filter(alu => alu.entidadId === state.activeSedeId);
+    const suscriptores = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
     
     try {
         for (const dia of diasGym) {
@@ -2744,7 +2898,7 @@ function descargarAsistenciasPDF(tipo) {
         diasEntrenamiento = cat.diasEntrenamiento;
         
         alumnos = state.alumnos.filter(alu => {
-            if (alu.entidadId !== state.activeSedeId) return false;
+            if (alu.sedeId !== state.activeSedeId) return false;
             if (!alu.fechaNacimiento) return false;
             const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
             return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
@@ -2756,7 +2910,7 @@ function descargarAsistenciasPDF(tipo) {
         catNombre = "ASISTENCIA GENERAL GIMNASIO";
         diasEntrenamiento = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
         
-        alumnos = state.alumnos.filter(alu => alu.entidadId === state.activeSedeId);
+        alumnos = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
         asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
     }
     
