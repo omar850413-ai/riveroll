@@ -10,7 +10,9 @@ const STORAGE_KEYS = {
     TRANSACCIONES: 'riveroll_transacciones_v3',
     PARTIDOS: 'riveroll_partidos_v3',
     TRABAJADORES: 'riveroll_trabajadores_v3',
-    ACTIVIDADES: 'riveroll_actividades_v3'
+    ACTIVIDADES: 'riveroll_actividades_v3',
+    CATEGORIAS: 'riveroll_categorias_v3',
+    ASISTENCIAS: 'riveroll_asistencias_v3'
 };
 
 const SUPER_ADMINS = ['omar850413@gmail.com'];
@@ -50,7 +52,9 @@ const listeners = {
     transacciones: [],
     partidos: [],
     trabajadores: [],
-    actividades: []
+    actividades: [],
+    categorias: [],
+    asistencias: []
 };
 
 function notificarCambio(coleccion, datos) {
@@ -110,7 +114,7 @@ const dbAdapter = {
             const esSuperAdmin = dbCurrentUser && SUPER_ADMINS.includes(dbCurrentUser.email.toLowerCase());
             if (dbCurrentUser && !esSuperAdmin) {
                 // Filtrar sedes creadas por el usuario
-                if (coleccion === 'sedes' || coleccion === 'transacciones' || coleccion === 'partidos' || coleccion === 'alumnos' || coleccion === 'trabajadores' || coleccion === 'actividades') {
+                if (coleccion === 'sedes' || coleccion === 'transacciones' || coleccion === 'partidos' || coleccion === 'alumnos' || coleccion === 'trabajadores' || coleccion === 'actividades' || coleccion === 'categorias' || coleccion === 'asistencias') {
                     queryRef = queryRef.where('userId', '==', dbCurrentUser.uid);
                 }
             }
@@ -149,6 +153,10 @@ const dbAdapter = {
                 datosLocal = this.getTrabajadoresLocal().filter(userFilter);
             } else if (coleccion === 'actividades') {
                 datosLocal = this.getActividadesLocal().filter(userFilter);
+            } else if (coleccion === 'categorias') {
+                datosLocal = this.getCategoriasLocal().filter(userFilter);
+            } else if (coleccion === 'asistencias') {
+                datosLocal = this.getAsistenciasLocal().filter(userFilter);
             }
             callback(datosLocal);
         }
@@ -207,6 +215,20 @@ const dbAdapter = {
         return JSON.parse(data);
     },
     saveActividadesLocal(data) { localStorage.setItem(STORAGE_KEYS.ACTIVIDADES, JSON.stringify(data)); },
+
+    getCategoriasLocal() {
+        const data = localStorage.getItem(STORAGE_KEYS.CATEGORIAS);
+        if (!data) { return []; }
+        return JSON.parse(data);
+    },
+    saveCategoriasLocal(data) { localStorage.setItem(STORAGE_KEYS.CATEGORIAS, JSON.stringify(data)); },
+
+    getAsistenciasLocal() {
+        const data = localStorage.getItem(STORAGE_KEYS.ASISTENCIAS);
+        if (!data) { return []; }
+        return JSON.parse(data);
+    },
+    saveAsistenciasLocal(data) { localStorage.setItem(STORAGE_KEYS.ASISTENCIAS, JSON.stringify(data)); },
 
     // --- OPERACIONES DE ESCRITURA ---
 
@@ -478,6 +500,65 @@ const dbAdapter = {
             actividades = actividades.filter(a => a.id !== id);
             this.saveActividadesLocal(actividades);
             notificarCambio('actividades', actividades);
+        }
+    },
+
+    // 7. CATEGORIAS (FÚTBOL)
+    async agregarCategoria(categoria) {
+        if (dbCurrentUser) {
+            categoria.userId = dbCurrentUser.uid;
+        }
+        if (useFirebase && firestoreDb) {
+            const temp = { ...categoria };
+            delete temp.id;
+            const docRef = await firestoreDb.collection('categorias').add(temp);
+            return { id: docRef.id, ...categoria };
+        } else {
+            const categorias = this.getCategoriasLocal();
+            categoria.id = 'cat_' + Date.now();
+            categorias.push(categoria);
+            this.saveCategoriasLocal(categorias);
+            notificarCambio('categorias', categorias);
+            return categoria;
+        }
+    },
+
+    async eliminarCategoria(id) {
+        if (useFirebase && firestoreDb) {
+            await firestoreDb.collection('categorias').doc(id).delete();
+        } else {
+            let categorias = this.getCategoriasLocal();
+            categorias = categorias.filter(c => c.id !== id);
+            this.saveCategoriasLocal(categorias);
+            notificarCambio('categorias', categorias);
+        }
+    },
+
+    // 8. ASISTENCIAS (REGISTROS DIARIOS/SEMANALES)
+    async guardarAsistencia(asistencia) {
+        if (dbCurrentUser) {
+            asistencia.userId = dbCurrentUser.uid;
+        }
+        
+        // El id se forma como asistencia_[fecha]_[categoriaId] o asistencia_[fecha]_gym
+        const docId = `asistencia_${asistencia.fecha}_${asistencia.categoriaId}`;
+        
+        if (useFirebase && firestoreDb) {
+            const temp = { ...asistencia };
+            delete temp.id;
+            await firestoreDb.collection('asistencias').doc(docId).set(temp);
+            return { id: docId, ...asistencia };
+        } else {
+            const asistencias = this.getAsistenciasLocal();
+            const index = asistencias.findIndex(a => a.fecha === asistencia.fecha && a.categoriaId === asistencia.categoriaId);
+            if (index !== -1) {
+                asistencias[index] = { ...asistencia, id: docId };
+            } else {
+                asistencias.push({ ...asistencia, id: docId });
+            }
+            this.saveAsistenciasLocal(asistencias);
+            notificarCambio('asistencias', asistencias);
+            return { id: docId, ...asistencia };
         }
     }
 };

@@ -190,6 +190,12 @@
                     <button id="subtab-miembros-btn" class="sub-tab-btn active soccer" onclick="switchSedeView('miembros')">
                         <i class="fa-solid fa-users"></i> Miembros / Alumnos
                     </button>
+                    <button id="subtab-categorias-btn" class="sub-tab-btn soccer" onclick="switchSedeView('categorias')" style="display: none;">
+                        <i class="fa-solid fa-folder-tree"></i> Categorías / Asistencia
+                    </button>
+                    <button id="subtab-asistencias-gym-btn" class="sub-tab-btn gym" onclick="switchSedeView('asistencias-gym')" style="display: none;">
+                        <i class="fa-solid fa-calendar-check"></i> Asistencia
+                    </button>
                     <button id="subtab-contabilidad-btn" class="sub-tab-btn soccer" onclick="switchSedeView('contabilidad')">
                         <i class="fa-solid fa-receipt"></i> Planilla de Cobros
                     </button>
@@ -316,6 +322,118 @@
                                     </tbody>
                                 </table>
                             </div>
+                    </div>
+                </div>
+
+                <!-- Sub-Panel: Categorías / Asistencia (Pestaña 5 - Soccer) -->
+                <div id="sub-panel-categorias" class="sede-sub-view" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: flex-start;">
+                        <!-- Columna Izquierda: Categorías -->
+                        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-folder-tree"></i> Categorías</h4>
+                                <button class="btn btn-accent btn-sm" onclick="openAddCategoriaModal()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">
+                                    <i class="fa-solid fa-plus"></i> Crear
+                                </button>
+                            </div>
+                            <div id="categorias-lista-sidebar" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+                                <!-- Dinámico -->
+                            </div>
+                        </div>
+
+                        <!-- Columna Derecha: Detalle y Asistencia -->
+                        <div class="glass-panel" style="padding: 1.5rem;" id="categorias-detalle-container">
+                            <div style="text-align: center; padding: 3rem 1.5rem; color: var(--color-text-muted);" id="categorias-placeholder">
+                                <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; color: var(--color-accent); opacity: 0.6;"></i>
+                                <p style="font-size: 0.95rem; margin: 0;">SELECCIONA O CREA UNA CATEGORÍA PARA EMPEZAR EL PASE DE ASISTENCIA</p>
+                            </div>
+                            
+                            <div id="categoria-detalle-contenido" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                                    <div>
+                                        <h3 id="cat-detalle-nombre" style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin: 0;"></h3>
+                                        <p id="cat-detalle-meta" style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0.25rem 0 0 0; text-transform: uppercase;"></p>
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button class="btn btn-outline btn-sm" onclick="descargarAsistenciasPDF('soccer')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
+                                            <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="eliminarCategoriaSeleccionada()" style="background: rgba(239, 68, 68, 0.1); color: var(--color-danger); border: 1px solid var(--color-danger);">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Selector de Semana -->
+                                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                                    <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
+                                    <input type="week" id="asistencias-semana-select" class="form-control" style="max-width: 220px; padding: 0.4rem 0.8rem; margin: 0;" onchange="cargarPaseAsistenciaCategoria()">
+                                </div>
+
+                                <!-- Tabla de Asistencia Semanal -->
+                                <div class="table-container" style="overflow-x: auto; margin-bottom: 1.5rem;">
+                                    <table class="accounting-table" style="min-width: 600px;">
+                                        <thead>
+                                            <tr id="tabla-asistencia-cabecera">
+                                                <!-- Dinámico -->
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabla-asistencia-cuerpo">
+                                            <!-- Dinámico -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <button class="btn btn-primary" onclick="guardarAsistenciaCategoria()" style="width: 100%; font-weight: bold; background: var(--color-accent); color: #000;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Guardar Asistencias de la Semana
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-Panel: Asistencias (Gym) (Pestaña 6 - Gym) -->
+                <div id="sub-panel-asistencias-gym" class="sede-sub-view" style="display: none;">
+                    <div class="glass-panel" style="padding: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin: 0;"><i class="fa-solid fa-calendar-check"></i> Registro General de Asistencias</h3>
+                                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0.25rem 0 0 0; text-transform: uppercase;">Pase de lista para todos los suscriptores activos del gimnasio</p>
+                            </div>
+                            <button class="btn btn-outline btn-sm" onclick="descargarAsistenciasPDF('gym')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
+                                <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+                            </button>
+                        </div>
+
+                        <!-- Selector de Semana para Gym -->
+                        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
+                            <input type="week" id="asistencias-semana-select-gym" class="form-control" style="max-width: 220px; padding: 0.4rem 0.8rem; margin: 0;" onchange="cargarPaseAsistenciaGym()">
+                        </div>
+
+                        <!-- Tabla de Asistencia Semanal (Lunes a Sábado por defecto en Gym) -->
+                        <div class="table-container" style="overflow-x: auto; margin-bottom: 1.5rem;">
+                            <table class="accounting-table" style="min-width: 700px;">
+                                <thead>
+                                    <tr id="tabla-asistencia-cabecera-gym">
+                                        <th>Integrante</th>
+                                        <th>Lun</th>
+                                        <th>Mar</th>
+                                        <th>Mié</th>
+                                        <th>Jue</th>
+                                        <th>Vie</th>
+                                        <th>Sáb</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-asistencia-cuerpo-gym">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="guardarAsistenciaGym()" style="width: 100%; font-weight: bold; background: var(--color-accent); color: #000;">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar Asistencias del Gimnasio
+                        </button>
                     </div>
                 </div>
             </div>
@@ -879,6 +997,62 @@
             <div id="user-approval-list" style="display: flex; flex-direction: column; gap: 1rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
                 <!-- Dinámico -->
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR CATEGORÍA (FÚTBOL) -->
+    <div id="modal-categoria" class="modal-overlay" style="z-index: 100;">
+        <div class="modal-container" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-folder-plus"></i> Crear Nueva Categoría</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-categoria')">&times;</button>
+            </div>
+            <form id="form-categoria" onsubmit="guardarNuevaCategoria(event)">
+                <div class="form-group">
+                    <label for="cat-nombre"><i class="fa-solid fa-tag"></i> Nombre de la Categoría</label>
+                    <input type="text" id="cat-nombre" class="form-control" required placeholder="Ej: Categoría 2015-2016 o Sub-12">
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="cat-anio-inicio"><i class="fa-solid fa-calendar"></i> Año Inicial</label>
+                        <input type="number" id="cat-anio-inicio" class="form-control" required placeholder="Ej: 2015" min="1990" max="2030">
+                    </div>
+                    <div class="form-group">
+                        <label for="cat-anio-fin"><i class="fa-solid fa-calendar"></i> Año Final</label>
+                        <input type="number" id="cat-anio-fin" class="form-control" required placeholder="Ej: 2016" min="1990" max="2030">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fa-solid fa-calendar-days"></i> Días de Entrenamiento</label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;">
+                        <label style="display: flex; gap: 0.35rem; align-items: center; font-size: 0.85rem; color: #fff; cursor: pointer;">
+                            <input type="checkbox" name="cat-dias" value="Lunes" style="accent-color: var(--color-accent);"> Lunes
+                        </label>
+                        <label style="display: flex; gap: 0.35rem; align-items: center; font-size: 0.85rem; color: #fff; cursor: pointer;">
+                            <input type="checkbox" name="cat-dias" value="Martes" style="accent-color: var(--color-accent);"> Martes
+                        </label>
+                        <label style="display: flex; gap: 0.35rem; align-items: center; font-size: 0.85rem; color: #fff; cursor: pointer;">
+                            <input type="checkbox" name="cat-dias" value="Miércoles" style="accent-color: var(--color-accent);"> Miércoles
+                        </label>
+                        <label style="display: flex; gap: 0.35rem; align-items: center; font-size: 0.85rem; color: #fff; cursor: pointer;">
+                            <input type="checkbox" name="cat-dias" value="Jueves" style="accent-color: var(--color-accent);"> Jueves
+                        </label>
+                        <label style="display: flex; gap: 0.35rem; align-items: center; font-size: 0.85rem; color: #fff; cursor: pointer;">
+                            <input type="checkbox" name="cat-dias" value="Viernes" style="accent-color: var(--color-accent);"> Viernes
+                        </label>
+                        <label style="display: flex; gap: 0.35rem; align-items: center; font-size: 0.85rem; color: #fff; cursor: pointer;">
+                            <input type="checkbox" name="cat-dias" value="Sábado" style="accent-color: var(--color-accent);"> Sábado
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-categoria')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1; background: var(--color-accent); color: #000; font-weight: bold;">Crear Categoría</button>
+                </div>
+            </form>
         </div>
     </div>
 

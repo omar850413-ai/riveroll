@@ -38,6 +38,9 @@ const state = {
     trabajadores: [],
     actividades: [],
     tempReporteTipo: 'planilla',
+    categorias: [],
+    asistencias: [],
+    activeCategoriaId: null,
     
     // Variables temporales para el flujo del modal de Abonos
     tempAbonoMiembroId: null,
@@ -224,6 +227,25 @@ function suscribirColecciones() {
                 renderActividadesRollTable();
             }
         });
+
+        window.db.suscribir('categorias', (nuevasCategorias) => {
+            state.categorias = nuevasCategorias;
+            if (state.activeSedeId) {
+                renderCategoriasSidebar();
+                if (state.activeCategoriaId) cargarPaseAsistenciaCategoria();
+            }
+        });
+
+        window.db.suscribir('asistencias', (nuevasAsistencias) => {
+            state.asistencias = nuevasAsistencias;
+            if (state.activeSedeId) {
+                if (state.activeSedeSubView === 'categorias' && state.activeCategoriaId) {
+                    cargarPaseAsistenciaCategoria();
+                } else if (state.activeSedeSubView === 'asistencias-gym') {
+                    cargarPaseAsistenciaGym();
+                }
+            }
+        });
         
         state.isSubscribed = true;
     }
@@ -323,6 +345,8 @@ function ejecutarIrADetalleSinPush(sedeId) {
     const btnConta = document.getElementById('subtab-contabilidad-btn');
     const btnTotales = document.getElementById('subtab-totales-btn');
     const btnTrabajadores = document.getElementById('subtab-trabajadores-btn');
+    const btnCats = document.getElementById('subtab-categorias-btn');
+    const btnAsistGym = document.getElementById('subtab-asistencias-gym-btn');
     
     const sede = state.sedes.find(s => s.id === sedeId);
     if (!sede) return;
@@ -333,6 +357,14 @@ function ejecutarIrADetalleSinPush(sedeId) {
     btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
     if (btnTotales) btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
     if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+    if (btnCats) {
+        btnCats.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        btnCats.style.display = esSoccer ? 'inline-flex' : 'none';
+    }
+    if (btnAsistGym) {
+        btnAsistGym.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        btnAsistGym.style.display = !esSoccer ? 'inline-flex' : 'none';
+    }
     
     actualizarEncabezadoDetalleSede();
     
@@ -391,6 +423,8 @@ function switchSedeView(viewId) {
         const btnConta = document.getElementById('subtab-contabilidad-btn');
         const btnTotales = document.getElementById('subtab-totales-btn');
         const btnTrabajadores = document.getElementById('subtab-trabajadores-btn');
+        const btnCats = document.getElementById('subtab-categorias-btn');
+        const btnAsistGym = document.getElementById('subtab-asistencias-gym-btn');
         
         const sede = state.sedes.find(s => s.id === state.activeSedeId);
         const esSoccer = sede ? sede.rubro === 'soccer' : true;
@@ -399,16 +433,22 @@ function switchSedeView(viewId) {
         if (btnConta) btnConta.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
         if (btnTotales) btnTotales.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
         if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        if (btnCats) btnCats.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        if (btnAsistGym) btnAsistGym.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
         
         const pMiembros = document.getElementById('sub-panel-miembros');
         const pConta = document.getElementById('sub-panel-contabilidad');
         const pTotales = document.getElementById('sub-panel-totales');
         const pTrabajadores = document.getElementById('sub-panel-trabajadores');
+        const pCats = document.getElementById('sub-panel-categorias');
+        const pAsistGym = document.getElementById('sub-panel-asistencias-gym');
         
         if (pMiembros) pMiembros.style.display = 'none';
         if (pConta) pConta.style.display = 'none';
         if (pTotales) pTotales.style.display = 'none';
         if (pTrabajadores) pTrabajadores.style.display = 'none';
+        if (pCats) pCats.style.display = 'none';
+        if (pAsistGym) pAsistGym.style.display = 'none';
         
         if (viewId === 'miembros') {
             if (btnMiembros) btnMiembros.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
@@ -427,6 +467,19 @@ function switchSedeView(viewId) {
             if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
             if (pTrabajadores) pTrabajadores.style.display = 'block';
             renderTrabajadoresGrid();
+        } else if (viewId === 'categorias') {
+            if (btnCats) btnCats.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+            if (pCats) pCats.style.display = 'block';
+            renderCategoriasSidebar();
+        } else if (viewId === 'asistencias-gym') {
+            if (btnAsistGym) btnAsistGym.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
+            if (pAsistGym) pAsistGym.style.display = 'block';
+            
+            const semSelect = document.getElementById('asistencias-semana-select-gym');
+            if (semSelect && !semSelect.value) {
+                semSelect.value = getWeekString(new Date());
+            }
+            cargarPaseAsistenciaGym();
         }
     } catch (e) {
         alert("ERROR en switchSedeView: " + e.message + "\nStack: " + e.stack);
@@ -2328,3 +2381,499 @@ function deleteUserAccount(userId) {
         }
     }
 }
+
+// --- UTILIDAD DE FECHAS (SEMANAS) ---
+function getWeekString(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return d.getUTCFullYear() + "-W" + String(weekNo).padStart(2, '0');
+}
+
+// Obtener las fechas de los días de una semana específica (de lunes a domingo)
+function getDatesOfWeek(weekStr) {
+    const parts = weekStr.split('-W');
+    const year = parseInt(parts[0], 10);
+    const week = parseInt(parts[1], 10);
+    
+    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+    const dow = simple.getDay();
+    const ISOweekStart = simple;
+    if (dow <= 4) {
+        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    } else {
+        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+    }
+    
+    const dates = {};
+    const diasNombres = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(ISOweekStart);
+        d.setDate(ISOweekStart.getDate() + i);
+        
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        
+        dates[diasNombres[i]] = `${yyyy}-${mm}-${dd}`;
+    }
+    return dates;
+}
+
+// --- CATEGORÍAS (FÚTBOL) ---
+function openAddCategoriaModal() {
+    document.getElementById('modal-categoria').classList.add('active');
+}
+
+async function guardarNuevaCategoria(event) {
+    event.preventDefault();
+    const nombre = document.getElementById('cat-nombre').value.trim();
+    const anioInicio = parseInt(document.getElementById('cat-anio-inicio').value, 10);
+    const anioFin = parseInt(document.getElementById('cat-anio-fin').value, 10);
+    
+    const checkboxes = document.querySelectorAll('input[name="cat-dias"]:checked');
+    const dias = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (dias.length === 0) {
+        alert("Selecciona al menos un día de entrenamiento.");
+        return;
+    }
+    
+    if (anioInicio > anioFin) {
+        alert("El año inicial no puede ser mayor que el año final.");
+        return;
+    }
+    
+    const nueva = {
+        nombre,
+        anioInicio,
+        anioFin,
+        diasEntrenamiento: dias,
+        sedeId: state.activeSedeId
+    };
+    
+    try {
+        await window.db.agregarCategoria(nueva);
+        alert("Categoría creada con éxito.");
+        closeModal('modal-categoria');
+        document.getElementById('form-categoria').reset();
+    } catch (err) {
+        console.error("Error al crear categoría:", err);
+    }
+}
+
+function renderCategoriasSidebar() {
+    const sidebar = document.getElementById('categorias-lista-sidebar');
+    if (!sidebar) return;
+    sidebar.innerHTML = "";
+    
+    const cats = state.categorias.filter(c => c.sedeId === state.activeSedeId);
+    
+    if (cats.length === 0) {
+        sidebar.innerHTML = `<p style="text-align: center; color: var(--color-text-muted); font-size: 0.85rem; padding: 1rem;">NO HAY CATEGORÍAS CREADAS</p>`;
+        return;
+    }
+    
+    cats.forEach(c => {
+        const btn = document.createElement('button');
+        btn.type = "button";
+        btn.className = `btn btn-outline btn-full ${state.activeCategoriaId === c.id ? 'active' : ''}`;
+        btn.style = `text-align: left; padding: 0.75rem 1rem; border-color: ${state.activeCategoriaId === c.id ? 'var(--color-accent)' : 'var(--border-color)'}; margin-bottom: 0.5rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.25rem; text-transform: uppercase;`;
+        
+        btn.innerHTML = `
+            <strong style="color: #fff;">${c.nombre}</strong>
+            <span style="font-size: 0.7rem; color: var(--color-text-muted);"><i class="fa-solid fa-calendar"></i> RANGO: ${c.anioInicio}-${c.anioFin} (${c.diasEntrenamiento.join(', ')})</span>
+        `;
+        
+        btn.onclick = () => seleccionarCategoria(c.id);
+        sidebar.appendChild(btn);
+    });
+}
+
+function seleccionarCategoria(id) {
+    state.activeCategoriaId = id;
+    renderCategoriasSidebar();
+    
+    document.getElementById('categorias-placeholder').style.display = 'none';
+    document.getElementById('categoria-detalle-contenido').style.display = 'block';
+    
+    const cat = state.categorias.find(c => c.id === id);
+    if (!cat) return;
+    
+    document.getElementById('cat-detalle-nombre').innerText = cat.nombre.toUpperCase();
+    document.getElementById('cat-detalle-meta').innerText = `RANGO DE EDAD: ${cat.anioInicio} - ${cat.anioFin} | ENTRENAMIENTOS: ${cat.diasEntrenamiento.join(', ')}`;
+    
+    const semSelect = document.getElementById('asistencias-semana-select');
+    if (semSelect && !semSelect.value) {
+        semSelect.value = getWeekString(new Date());
+    }
+    
+    cargarPaseAsistenciaCategoria();
+}
+
+async function eliminarCategoriaSeleccionada() {
+    if (confirm("¿Estás seguro de que deseas eliminar esta categoría? Se conservarán los alumnos en la vista general de miembros pero se borrará la agrupación y configuración de entrenamientos.")) {
+        try {
+            await window.db.eliminarCategoria(state.activeCategoriaId);
+            state.activeCategoriaId = null;
+            document.getElementById('categorias-placeholder').style.display = 'block';
+            document.getElementById('categoria-detalle-contenido').style.display = 'none';
+            renderCategoriasSidebar();
+        } catch (err) {
+            console.error("Error al eliminar categoría:", err);
+        }
+    }
+}
+
+// --- PASE DE ASISTENCIA (CATEGORÍA FÚTBOL) ---
+function cargarPaseAsistenciaCategoria() {
+    const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+    if (!cat) return;
+    
+    const cabecera = document.getElementById('tabla-asistencia-cabecera');
+    const cuerpo = document.getElementById('tabla-asistencia-cuerpo');
+    if (!cabecera || !cuerpo) return;
+    
+    const weekStr = document.getElementById('asistencias-semana-select').value;
+    if (!weekStr) return;
+    
+    const weekDates = getDatesOfWeek(weekStr);
+    
+    // 1. Armar Cabecera de la Tabla
+    cabecera.innerHTML = `<th style="text-align: left;">Alumno</th>`;
+    cat.diasEntrenamiento.forEach(dia => {
+        const fechaDia = weekDates[dia];
+        const labelFecha = fechaDia ? fechaDia.split('-').slice(1).join('/') : '';
+        cabecera.innerHTML += `<th style="text-align: center; width: 110px;">${dia}<br><small style="color: #9ca3af; font-size:0.7rem;">${labelFecha}</small></th>`;
+    });
+    
+    // 2. Filtrar Alumnos por Categoría
+    const alumnosCat = state.alumnos.filter(alu => {
+        if (alu.entidadId !== state.activeSedeId) return false;
+        if (!alu.fechaNacimiento) return false;
+        const anioNac = new Date(alu.fechaNacimiento).getFullYear();
+        return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
+    });
+    
+    cuerpo.innerHTML = "";
+    if (alumnosCat.length === 0) {
+        cuerpo.innerHTML = `<tr><td colspan="${cat.diasEntrenamiento.length + 1}" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES QUE CORRESPONDAN AL RANGO DE EDAD DE ESTA CATEGORÍA (${cat.anioInicio}-${cat.anioFin})</td></tr>`;
+        return;
+    }
+    
+    // Cargar asistencias ya guardadas para esta semana y categoría
+    const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
+    
+    alumnosCat.forEach(alu => {
+        const tr = document.createElement('tr');
+        let html = `
+            <td style="color: #fff; font-weight: 600; text-transform: uppercase;">
+                ${alu.nombre}
+                <div style="font-size: 0.7rem; color: #9ca3af;">AÑO NAC: ${new Date(alu.fechaNacimiento).getFullYear()}</div>
+            </td>
+        `;
+        
+        cat.diasEntrenamiento.forEach(dia => {
+            const fechaDia = weekDates[dia];
+            const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
+            const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
+            const checked = estado === 'asistencia' ? 'checked' : '';
+            
+            html += `
+                <td style="text-align: center; vertical-align: middle;">
+                    <input type="checkbox" name="asist-${alu.id}-${fechaDia}" value="asistencia" ${checked} style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--color-accent);">
+                </td>
+            `;
+        });
+        
+        tr.innerHTML = html;
+        cuerpo.appendChild(tr);
+    });
+}
+
+async function guardarAsistenciaCategoria() {
+    const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+    if (!cat) return;
+    
+    const weekStr = document.getElementById('asistencias-semana-select').value;
+    if (!weekStr) return;
+    
+    const weekDates = getDatesOfWeek(weekStr);
+    
+    const alumnosCat = state.alumnos.filter(alu => {
+        if (alu.entidadId !== state.activeSedeId) return false;
+        if (!alu.fechaNacimiento) return false;
+        const anioNac = new Date(alu.fechaNacimiento).getFullYear();
+        return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
+    });
+    
+    try {
+        for (const dia of cat.diasEntrenamiento) {
+            const fechaDia = weekDates[dia];
+            const registros = {};
+            
+            alumnosCat.forEach(alu => {
+                const cb = document.querySelector(`input[name="asist-${alu.id}-${fechaDia}"]`);
+                registros[alu.id] = (cb && cb.checked) ? 'asistencia' : 'falta';
+            });
+            
+            await window.db.guardarAsistencia({
+                fecha: fechaDia,
+                semana: weekStr,
+                categoriaId: cat.id,
+                sedeId: state.activeSedeId,
+                registros: registros
+            });
+        }
+        alert("Asistencias de la semana guardadas correctamente.");
+    } catch (err) {
+        console.error("Error al guardar asistencias:", err);
+        alert("Error al guardar asistencias: " + err.message);
+    }
+}
+
+// --- PASE DE ASISTENCIA (GIMNASIO) ---
+function cargarPaseAsistenciaGym() {
+    const cuerpo = document.getElementById('tabla-asistencia-cuerpo-gym');
+    if (!cuerpo) return;
+    
+    const weekStr = document.getElementById('asistencias-semana-select-gym').value;
+    if (!weekStr) return;
+    
+    const weekDates = getDatesOfWeek(weekStr);
+    const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    
+    // Filtrar suscriptores del gimnasio
+    const suscriptores = state.alumnos.filter(alu => alu.entidadId === state.activeSedeId);
+    
+    cuerpo.innerHTML = "";
+    if (suscriptores.length === 0) {
+        cuerpo.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES O SUSCRIPTORES REGISTRADOS EN ESTE GIMNASIO</td></tr>`;
+        return;
+    }
+    
+    const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
+    
+    suscriptores.forEach(alu => {
+        const tr = document.createElement('tr');
+        let html = `
+            <td style="color: #fff; font-weight: 600; text-transform: uppercase;">
+                ${alu.nombre}
+            </td>
+        `;
+        
+        diasGym.forEach(dia => {
+            const fechaDia = weekDates[dia];
+            const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
+            const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
+            const checked = estado === 'asistencia' ? 'checked' : '';
+            
+            html += `
+                <td style="text-align: center; vertical-align: middle;">
+                    <input type="checkbox" name="asistgym-${alu.id}-${fechaDia}" value="asistencia" ${checked} style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--color-accent);">
+                </td>
+            `;
+        });
+        
+        tr.innerHTML = html;
+        cuerpo.appendChild(tr);
+    });
+}
+
+async function guardarAsistenciaGym() {
+    const weekStr = document.getElementById('asistencias-semana-select-gym').value;
+    if (!weekStr) return;
+    
+    const weekDates = getDatesOfWeek(weekStr);
+    const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    
+    const suscriptores = state.alumnos.filter(alu => alu.entidadId === state.activeSedeId);
+    
+    try {
+        for (const dia of diasGym) {
+            const fechaDia = weekDates[dia];
+            const registros = {};
+            
+            suscriptores.forEach(alu => {
+                const cb = document.querySelector(`input[name="asistgym-${alu.id}-${fechaDia}"]`);
+                registros[alu.id] = (cb && cb.checked) ? 'asistencia' : 'falta';
+            });
+            
+            await window.db.guardarAsistencia({
+                fecha: fechaDia,
+                semana: weekStr,
+                categoriaId: 'gym',
+                sedeId: state.activeSedeId,
+                registros: registros
+            });
+        }
+        alert("Asistencias de la semana guardadas correctamente.");
+    } catch (err) {
+        console.error("Error al guardar asistencias del gimnasio:", err);
+        alert("Error al guardar asistencias: " + err.message);
+    }
+}
+
+// --- GENERACIÓN DE REPORTES PDF PROFESIONALES ---
+function descargarAsistenciasPDF(tipo) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape'); // Formato horizontal
+    
+    const sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (!sede) return;
+    
+    let weekStr = "";
+    let catNombre = "";
+    let diasEntrenamiento = [];
+    let alumnos = [];
+    let asistenciasSemana = [];
+    
+    if (tipo === 'soccer') {
+        const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+        if (!cat) return;
+        
+        weekStr = document.getElementById('asistencias-semana-select').value;
+        catNombre = cat.nombre.toUpperCase();
+        diasEntrenamiento = cat.diasEntrenamiento;
+        
+        alumnos = state.alumnos.filter(alu => {
+            if (alu.entidadId !== state.activeSedeId) return false;
+            if (!alu.fechaNacimiento) return false;
+            const anioNac = new Date(alu.fechaNacimiento).getFullYear();
+            return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
+        });
+        
+        asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
+    } else {
+        weekStr = document.getElementById('asistencias-semana-select-gym').value;
+        catNombre = "ASISTENCIA GENERAL GIMNASIO";
+        diasEntrenamiento = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+        
+        alumnos = state.alumnos.filter(alu => alu.entidadId === state.activeSedeId);
+        asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
+    }
+    
+    if (!weekStr) {
+        alert("Selecciona una semana antes de generar el PDF.");
+        return;
+    }
+    
+    const weekDates = getDatesOfWeek(weekStr);
+    
+    // --- DISEÑO DE ENCABEZADO ---
+    // Banner superior oscuro
+    doc.setFillColor(31, 41, 55);
+    doc.rect(0, 0, 297, 35, 'F');
+    
+    // Nombre del Negocio
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text(sede.nombre.toUpperCase(), 15, 18);
+    
+    // Subtítulo
+    doc.setTextColor(205, 162, 80); // Color oro corporativo
+    doc.setFontSize(10);
+    doc.text(`REPORTE DE ASISTENCIA SEMANAL - CATEGORÍA: ${catNombre}`, 15, 25);
+    doc.text(`SEMANA: ${weekStr}`, 15, 30);
+    
+    // Agregar Logo si existe en Base64
+    const logoImg = sede.logo || state.base64SedeLogo;
+    if (logoImg && (logoImg.startsWith('data:image') || logoImg.startsWith('http'))) {
+        try {
+            if (logoImg.startsWith('data:image')) {
+                doc.addImage(logoImg, 'JPEG', 250, 5, 25, 25);
+            }
+        } catch (e) {
+            console.log("No se pudo incrustar el logo en el PDF:", e);
+        }
+    }
+    
+    // Cabecera de la Tabla
+    let startY = 45;
+    doc.setFillColor(243, 244, 246);
+    doc.rect(15, startY, 267, 10, 'F');
+    
+    doc.setTextColor(31, 41, 55);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Integrante", 18, startY + 7);
+    
+    let colX = 140;
+    const colWidth = 20;
+    diasEntrenamiento.forEach(dia => {
+        const fechaDia = weekDates[dia];
+        const labelFecha = fechaDia ? fechaDia.split('-').slice(1).join('/') : '';
+        doc.text(`${dia.substring(0, 3)} (${labelFecha})`, colX, startY + 7);
+        colX += colWidth;
+    });
+    
+    doc.text("Asist.", 265, startY + 7);
+    
+    // Cuerpo de la Tabla
+    doc.setFont("helvetica", "normal");
+    let rowY = startY + 10;
+    
+    alumnos.forEach((alu, index) => {
+        if (index % 2 === 0) {
+            doc.setFillColor(249, 250, 251);
+            doc.rect(15, rowY, 267, 8, 'F');
+        }
+        
+        doc.setTextColor(31, 41, 55);
+        doc.text(alu.nombre.toUpperCase(), 18, rowY + 5.5);
+        
+        let colValX = 140;
+        let asistCount = 0;
+        
+        diasEntrenamiento.forEach(dia => {
+            const fechaDia = weekDates[dia];
+            const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
+            const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
+            
+            if (estado === 'asistencia') {
+                doc.setTextColor(16, 185, 129); // Verde
+                doc.text("SI", colValX + 5, rowY + 5.5);
+                asistCount++;
+            } else {
+                doc.setTextColor(239, 68, 68); // Rojo
+                doc.text("NO", colValX + 5, rowY + 5.5);
+            }
+            colValX += colWidth;
+        });
+        
+        doc.setTextColor(31, 41, 55);
+        doc.text(asistCount.toString(), 268, rowY + 5.5);
+        
+        doc.setDrawColor(229, 231, 235);
+        doc.line(15, rowY + 8, 282, rowY + 8);
+        rowY += 8;
+        
+        if (rowY > 180) {
+            doc.addPage('landscape');
+            rowY = 20;
+            
+            doc.setFillColor(243, 244, 246);
+            doc.rect(15, rowY, 267, 10, 'F');
+            doc.setTextColor(31, 41, 55);
+            doc.setFont("helvetica", "bold");
+            doc.text("Integrante", 18, rowY + 7);
+            let cx = 140;
+            diasEntrenamiento.forEach(dia => {
+                const fechaDia = weekDates[dia];
+                const labelFecha = fechaDia ? fechaDia.split('-').slice(1).join('/') : '';
+                doc.text(`${dia.substring(0, 3)} (${labelFecha})`, cx, rowY + 7);
+                cx += colWidth;
+            });
+            doc.text("Asist.", 265, rowY + 7);
+            doc.setFont("helvetica", "normal");
+            rowY += 10;
+        }
+    });
+    
+    const filename = `Asistencias_${sede.nombre.replace(/\s+/g, '_')}_${weekStr}.pdf`;
+    doc.save(filename);
+}
+
