@@ -24,7 +24,6 @@ if (localStorage.getItem('riveroll_pwa_version_clean') !== '13.0') {
     }, 500);
 }
 
-const SUPER_ADMINS = ['omar850413@gmail.com'];
 
 // --- ESTADO GLOBAL DE LA APLICACIÓN ---
 const state = {
