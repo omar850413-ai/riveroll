@@ -13,6 +13,8 @@ const STORAGE_KEYS = {
     ACTIVIDADES: 'riveroll_actividades_v3'
 };
 
+const SUPER_ADMINS = ['omar850413@gmail.com'];
+
 // =========================================================================
 // CONFIGURACIÓN DE FIREBASE: PEGA TUS CREDENCIALES AQUÍ ADENTRO
 // La aplicación se conectará automáticamente de forma silenciosa.
@@ -105,7 +107,7 @@ const dbAdapter = {
             let queryRef = firestoreDb.collection(coleccion);
             
             // Si el usuario no es superadministrador, filtrar por su userId
-            const esSuperAdmin = dbCurrentUser && dbCurrentUser.email === 'omar850413@gmail.com';
+            const esSuperAdmin = dbCurrentUser && SUPER_ADMINS.includes(dbCurrentUser.email.toLowerCase());
             if (dbCurrentUser && !esSuperAdmin) {
                 // Filtrar sedes creadas por el usuario
                 if (coleccion === 'sedes' || coleccion === 'transacciones' || coleccion === 'partidos' || coleccion === 'alumnos' || coleccion === 'trabajadores' || coleccion === 'actividades') {
@@ -129,7 +131,7 @@ const dbAdapter = {
         } else {
             let datosLocal = [];
             const userFilter = (item) => {
-                const esSuperAdmin = dbCurrentUser && dbCurrentUser.email === 'omar850413@gmail.com';
+                const esSuperAdmin = dbCurrentUser && SUPER_ADMINS.includes(dbCurrentUser.email.toLowerCase());
                 if (!dbCurrentUser) return true;
                 if (esSuperAdmin) return true;
                 return item.userId === dbCurrentUser.uid;

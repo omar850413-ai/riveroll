@@ -134,6 +134,9 @@
             </div>
             
             <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                <button id="btn-aceptar-usuarios" class="btn btn-primary" onclick="openUserApprovalModal()" style="display: none; background: #a855f7; color: #fff; border-color: #a855f7; gap: 0.5rem; align-items: center;">
+                    <i class="fa-solid fa-user-check"></i> Aceptar Usuarios
+                </button>
                 <button class="btn btn-accent" onclick="openAddSedeModal()">
                     <i class="fa-solid fa-circle-plus"></i> Agregar Centro
                 </button>
@@ -857,6 +860,24 @@
                         <!-- Dinámico -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ACEPTAR USUARIOS (APROBACIONES) -->
+    <div id="modal-aceptar-usuarios" class="modal-overlay" style="z-index: 100;">
+        <div class="modal-container" style="max-width: 550px; padding: 2rem;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-check"></i> Aceptar Usuarios</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-aceptar-usuarios')">&times;</button>
+            </div>
+            
+            <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1.5rem; text-transform: uppercase;">
+                Gestiona las solicitudes de registro y activa o revoca el acceso a la plataforma.
+            </p>
+            
+            <div id="user-approval-list" style="display: flex; flex-direction: column; gap: 1rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
+                <!-- Dinámico -->
             </div>
         </div>
     </div>

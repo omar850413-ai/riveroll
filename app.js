@@ -24,6 +24,8 @@ if (localStorage.getItem('riveroll_pwa_version_clean') !== '13.0') {
     }, 500);
 }
 
+const SUPER_ADMINS = ['omar850413@gmail.com'];
+
 // --- ESTADO GLOBAL DE LA APLICACIÓN ---
 const state = {
     activeSedeId: null,      // Sede actualmente seleccionada en drill-down
@@ -53,77 +55,157 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar el Listener de Autenticación de Firebase
     firebase.auth().onAuthStateChanged((user) => {
         if (user) {
-            // Usuario conectado
-            state.currentUser = user;
-            state.isSuperAdmin = (user.email === 'omar850413@gmail.com');
-            window.db.setCurrentUser(user);
+            const userEmail = user.email.toLowerCase();
+            const isSuperAdmin = SUPER_ADMINS.includes(userEmail);
             
-            // Ocultar Overlay de Autenticación
-            document.getElementById('auth-overlay').style.display = 'none';
-            
-            // Suscribirse a las colecciones sólo si no se ha hecho
-            if (!state.isSubscribed) {
-                window.db.suscribir('sedes', (nuevasSedes) => {
-                    state.sedes = nuevasSedes;
-                    renderSedes();
-                    actualizarSelectoresFiltros();
-                    if (state.activeSedeId) actualizarEncabezadoDetalleSede();
-                });
-
-                window.db.suscribir('alumnos', (nuevosAlumnos) => {
-                    state.alumnos = nuevosAlumnos;
-                    if (state.activeSedeId) {
-                        renderAlumnosDrilldown();
-                        renderPlanillaCobrosSede();
+            if (window.db && window.db.isNubeActiva() && firebase.apps.length > 0) {
+                const firestoreDb = firebase.firestore();
+                firestoreDb.collection("users").doc(user.uid).get().then(doc => {
+                    let currentUserData;
+                    if (doc.exists) {
+                        currentUserData = doc.data();
+                        let needsUpdate = false;
+                        let updatedFields = {};
+                        
+                        if (currentUserData.isAdmin !== isSuperAdmin) {
+                            currentUserData.isAdmin = isSuperAdmin;
+                            updatedFields.isAdmin = isSuperAdmin;
+                            needsUpdate = true;
+                        }
+                        if (isSuperAdmin && currentUserData.approved !== true) {
+                            currentUserData.approved = true;
+                            updatedFields.approved = true;
+                            needsUpdate = true;
+                        }
+                        if (currentUserData.approved === undefined) {
+                            currentUserData.approved = true;
+                            updatedFields.approved = true;
+                            needsUpdate = true;
+                        }
+                        
+                        if (needsUpdate) {
+                            firestoreDb.collection("users").doc(user.uid).update(updatedFields).catch(err => console.log(err));
+                        }
+                        
+                        if (currentUserData.approved !== true) {
+                            firebase.auth().signOut();
+                            alert("TU CUENTA ESTÁ PENDIENTE DE APROBACIÓN POR EL ADMINISTRADOR.");
+                            return;
+                        }
+                    } else {
+                        currentUserData = {
+                            name: user.email.split('@')[0].toUpperCase(),
+                            email: user.email,
+                            approved: isSuperAdmin,
+                            isAdmin: isSuperAdmin
+                        };
+                        firestoreDb.collection("users").doc(user.uid).set(currentUserData).catch(err => console.log(err));
+                        
+                        if (!isSuperAdmin) {
+                            firebase.auth().signOut();
+                            alert("SOLICITUD ENVIADA. TU CUENTA DEBE SER APROBADA POR EL ADMINISTRADOR.");
+                            return;
+                        }
                     }
-                });
-
-                window.db.suscribir('transacciones', (nuevasTransacciones) => {
-                    state.transacciones = nuevasTransacciones;
-                    if (state.activeSedeId) {
-                        renderResumenFinanzas();
-                        renderEgresosLista();
+                    
+                    state.currentUser = user;
+                    state.isSuperAdmin = isSuperAdmin;
+                    window.db.setCurrentUser(user);
+                    
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    
+                    const userApprovalBtn = document.getElementById('btn-aceptar-usuarios');
+                    if (userApprovalBtn) {
+                        userApprovalBtn.style.display = isSuperAdmin ? 'inline-flex' : 'none';
                     }
+                    
+                    suscribirColecciones();
+                    actualizarBotonEstadoNube();
+                }).catch(err => {
+                    firebase.auth().signOut();
+                    alert("ERROR AL CARGAR DATOS DE USUARIO: " + err.message);
                 });
-
-                window.db.suscribir('trabajadores', (nuevosTrabajadores) => {
-                    state.trabajadores = nuevosTrabajadores;
-                    if (state.activeSedeId) {
-                        renderTrabajadoresGrid();
-                        actualizarSelectoresTrabajadores();
-                    }
-                });
-
-                window.db.suscribir('actividades', (nuevasActividades) => {
-                    state.actividades = nuevasActividades;
-                    if (state.activeSedeId) {
-                        renderActividadesRollTable();
-                    }
-                });
+            } else {
+                state.currentUser = user;
+                state.isSuperAdmin = isSuperAdmin;
+                window.db.setCurrentUser(user);
+                document.getElementById('auth-overlay').style.display = 'none';
                 
-                state.isSubscribed = true;
+                const userApprovalBtn = document.getElementById('btn-aceptar-usuarios');
+                if (userApprovalBtn) {
+                    userApprovalBtn.style.display = isSuperAdmin ? 'inline-flex' : 'none';
+                }
+                
+                suscribirColecciones();
+                actualizarBotonEstadoNube();
             }
-            
-            actualizarBotonEstadoNube();
         } else {
-            // Usuario desconectado
             state.currentUser = null;
             state.isSuperAdmin = false;
             state.isSubscribed = false;
             window.db.setCurrentUser(null);
             
-            // Limpiar datos
             state.sedes = [];
             state.alumnos = [];
             state.transacciones = [];
             state.activeSedeId = null;
             
-            // Mostrar Overlay de Autenticación
             document.getElementById('auth-overlay').style.display = 'flex';
             switchAuthTab('login');
+            
+            const userApprovalBtn = document.getElementById('btn-aceptar-usuarios');
+            if (userApprovalBtn) {
+                userApprovalBtn.style.display = 'none';
+            }
         }
     });
 });
+
+function suscribirColecciones() {
+    if (!state.isSubscribed) {
+        window.db.suscribir('sedes', (nuevasSedes) => {
+            state.sedes = nuevasSedes;
+            renderSedes();
+            actualizarSelectoresFiltros();
+            if (state.activeSedeId) actualizarEncabezadoDetalleSede();
+        });
+
+        window.db.suscribir('alumnos', (nuevosAlumnos) => {
+            state.alumnos = nuevosAlumnos;
+            if (state.activeSedeId) {
+                renderAlumnosDrilldown();
+                renderPlanillaCobrosSede();
+            }
+        });
+
+        window.db.suscribir('transacciones', (nuevasTransacciones) => {
+            state.transacciones = nuevasTransacciones;
+            if (state.activeSedeId) {
+                renderResumenFinanzas();
+                renderEgresosLista();
+            }
+        });
+
+        window.db.suscribir('trabajadores', (nuevosTrabajadores) => {
+            state.trabajadores = nuevosTrabajadores;
+            if (state.activeSedeId) {
+                renderTrabajadoresGrid();
+                actualizarSelectoresTrabajadores();
+            }
+        });
+
+        window.db.suscribir('actividades', (nuevasActividades) => {
+            state.actividades = nuevasActividades;
+            if (state.activeSedeId) {
+                renderActividadesRollTable();
+            }
+        });
+        
+        state.isSubscribed = true;
+    }
+}
+
+/* El código original terminaba aquí */
 
 // --- ACTUALIZAR BOTÓN ESTADO DE LA NUBE ---
 function actualizarBotonEstadoNube() {
@@ -1662,9 +1744,28 @@ async function handleAuthRegister(event) {
         return;
     }
     
+    const isInitialAdmin = SUPER_ADMINS.includes(email.toLowerCase());
+    
     try {
-        await firebase.auth().createUserWithEmailAndPassword(email, pass);
-        alert("Cuenta creada con éxito.");
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, pass);
+        const user = userCredential.user;
+        
+        if (window.db && window.db.isNubeActiva() && firebase.apps.length > 0) {
+            const firestoreDb = firebase.firestore();
+            await firestoreDb.collection("users").doc(user.uid).set({
+                name: email.split('@')[0].toUpperCase(),
+                email: email,
+                approved: isInitialAdmin,
+                isAdmin: isInitialAdmin
+            });
+        }
+        
+        if (isInitialAdmin) {
+            alert("Cuenta de Administrador creada con éxito. Iniciando sesión...");
+        } else {
+            alert("Solicitud de cuenta registrada con éxito. Tu cuenta debe ser aprobada por el administrador antes de poder ingresar.");
+            await firebase.auth().signOut();
+        }
     } catch (error) {
         console.error("Error al registrar usuario:", error);
         let errorMsg = error.message;
@@ -2105,6 +2206,101 @@ async function eliminarActividadRoll(id) {
             await window.db.eliminarActividad(id);
         } catch (err) {
             console.error("Error al eliminar actividad:", err);
+        }
+    }
+}
+
+// --- USER APPROVAL MODAL LOGIC (SUPER ADMIN ONLY) ---
+function openUserApprovalModal() {
+    const isSuperAdmin = state.currentUser && SUPER_ADMINS.includes(state.currentUser.email.toLowerCase());
+    if (!isSuperAdmin) {
+        alert("ACCESO DENEGADO: NO TIENES PERMISOS DE ADMINISTRADOR.");
+        return;
+    }
+    document.getElementById("modal-aceptar-usuarios").classList.add("active");
+    loadUsersForApproval();
+}
+
+function loadUsersForApproval() {
+    const container = document.getElementById("user-approval-list");
+    if (!container) return;
+    container.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> CARGANDO USUARIOS...</div>`;
+    
+    if (firebase.apps.length > 0) {
+        const firestoreDb = firebase.firestore();
+        firestoreDb.collection("users").get()
+            .then(querySnapshot => {
+                container.innerHTML = "";
+                let usersList = [];
+                querySnapshot.forEach(doc => {
+                    usersList.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Filter out the current user and the creator (omar850413@gmail.com) from the list
+                const otherUsers = usersList.filter(u => u.id !== state.currentUser.uid && (u.email || "").toLowerCase() !== 'omar850413@gmail.com');
+                
+                if (otherUsers.length === 0) {
+                    container.innerHTML = `<p style="text-align: center; color: #9ca3af; padding: 2rem; font-size: 0.9rem;">NO HAY OTROS USUARIOS REGISTRADOS EN EL SISTEMA.</p>`;
+                    return;
+                }
+                
+                otherUsers.forEach(user => {
+                    const userCard = document.createElement("div");
+                    userCard.style = "background: rgba(255, 255, 255, 0.02); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 1rem;";
+                    
+                    const isApproved = user.approved === true;
+                    
+                    userCard.innerHTML = `
+                        <div style="flex-grow: 1;">
+                            <h5 style="margin:0; font-size: 0.95rem; font-weight:600; text-transform: uppercase; color: #fff;">${user.name || 'SIN NOMBRE'}</h5>
+                            <p style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: #9ca3af; text-transform: uppercase;">${user.email}</p>
+                            <span class="badge ${isApproved ? 'badge-accent' : 'badge-danger'}" style="display: inline-block; margin-top: 0.4rem; font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: bold; background: ${isApproved ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; color: ${isApproved ? '#10b981' : '#ef4444'};">
+                                ${isApproved ? 'APROBADO' : 'PENDIENTE'}
+                            </span>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                            ${isApproved ? 
+                                `<button class="btn" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; background: #374151; color: #fff;" onclick="setUserApprovalStatus('${user.id}', false)">BLOQUEAR</button>` :
+                                `<button class="btn btn-accent" style="padding: 0.35rem 0.7rem; font-size: 0.75rem;" onclick="setUserApprovalStatus('${user.id}', true)">APROBAR</button>`
+                            }
+                            <button class="btn btn-outline" style="padding: 0.35rem 0.7rem; font-size: 0.75rem; border-color: var(--color-danger); color: var(--color-danger); background: rgba(239, 68, 68, 0.05);" onclick="deleteUserAccount('${user.id}')"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                    container.appendChild(userCard);
+                });
+            })
+            .catch(err => {
+                container.innerHTML = `<p style="color: var(--color-danger); text-align: center;">ERROR AL CARGAR USUARIOS: ${err.message.toUpperCase()}</p>`;
+            });
+    }
+}
+
+function setUserApprovalStatus(userId, approvedStatus) {
+    if (firebase.apps.length > 0) {
+        const firestoreDb = firebase.firestore();
+        firestoreDb.collection("users").doc(userId).update({ approved: approvedStatus })
+            .then(() => {
+                alert(approvedStatus ? "USUARIO APROBADO CON ÉXITO" : "ACCESO DE USUARIO REVOCADO");
+                loadUsersForApproval();
+            })
+            .catch(err => {
+                alert("ERROR: " + err.message.toUpperCase());
+            });
+    }
+}
+
+function deleteUserAccount(userId) {
+    if (confirm("¿ESTÁS SEGURO DE QUE DESEAS ELIMINAR ESTE USUARIO DE LA BASE DE DATOS?")) {
+        if (firebase.apps.length > 0) {
+            const firestoreDb = firebase.firestore();
+            firestoreDb.collection("users").doc(userId).delete()
+                .then(() => {
+                    alert("USUARIO ELIMINADO CON ÉXITO");
+                    loadUsersForApproval();
+                })
+                .catch(err => {
+                    alert("ERROR AL ELIMINAR: " + err.message.toUpperCase());
+                });
         }
     }
 }
