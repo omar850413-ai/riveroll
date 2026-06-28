@@ -1,10 +1,10 @@
-const CACHE_NAME = 'riveroll-cache-v24';
+const CACHE_NAME = 'riveroll-cache-v25';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
-  './app.js?v=24',
-  './db.js?v=24'
+  './app.js?v=25',
+  './db.js?v=25'
 ];
 
 self.addEventListener('install', (e) => {

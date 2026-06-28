@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '24.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '24.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '25.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '25.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -195,22 +195,7 @@ function suscribirColecciones() {
             renderSedes();
             actualizarSelectoresFiltros();
             if (state.activeSedeId) actualizarEncabezadoDetalleSede();
-            
-            // RESTAURAR ESTADO DE NAVEGACIÓN ANTE RECARGA ACCIDENTAL
-            const savedSedeId = localStorage.getItem('riveroll_active_sede_id');
-            if (savedSedeId && nuevasSedes.some(s => s.id === savedSedeId)) {
-                ejecutarIrADetalleSinPush(savedSedeId, true);
-                const savedSubView = localStorage.getItem('riveroll_active_sub_view');
-                if (savedSubView) {
-                    switchSedeView(savedSubView);
-                    if (savedSubView === 'categorias') {
-                        const savedCatId = localStorage.getItem('riveroll_active_categoria_id');
-                        if (savedCatId) {
-                            seleccionarCategoria(savedCatId);
-                        }
-                    }
-                }
-            }
+            intentarRestaurarNavegacion();
         });
 
         window.db.suscribir('alumnos', (nuevosAlumnos) => {
@@ -255,6 +240,7 @@ function suscribirColecciones() {
                 renderCategoriasSidebar();
                 if (state.activeCategoriaId) cargarPaseAsistenciaCategoria();
             }
+            intentarRestaurarNavegacion();
         });
 
         window.db.suscribir('asistencias', (nuevasAsistencias) => {
@@ -272,7 +258,36 @@ function suscribirColecciones() {
     }
 }
 
-/* El código original terminaba aquí */
+let restorationAttempted = false;
+
+function intentarRestaurarNavegacion() {
+    if (restorationAttempted) return;
+    
+    const savedSedeId = localStorage.getItem('riveroll_active_sede_id');
+    if (!savedSedeId) return; 
+    
+    const nuevasSedes = state.sedes || [];
+    if (nuevasSedes.length === 0 || !nuevasSedes.some(s => s.id === savedSedeId)) return;
+    
+    const savedSubView = localStorage.getItem('riveroll_active_sub_view');
+    const savedCatId = localStorage.getItem('riveroll_active_categoria_id');
+    
+    if (savedSubView === 'categorias' && savedCatId && savedCatId !== 'todas') {
+        const nuevasCats = state.categorias || [];
+        if (nuevasCats.length === 0 || !nuevasCats.some(c => c.id === savedCatId)) return;
+    }
+    
+    // Todos los datos requeridos ya se encuentran en el estado en memoria! Procedemos a restaurar la vista completa
+    restorationAttempted = true;
+    ejecutarIrADetalleSinPush(savedSedeId, true);
+    
+    if (savedSubView) {
+        switchSedeView(savedSubView);
+        if (savedSubView === 'categorias' && savedCatId) {
+            seleccionarCategoria(savedCatId);
+        }
+    }
+}
 
 // --- ACTUALIZAR BOTÓN ESTADO DE LA NUBE ---
 function actualizarBotonEstadoNube() {
@@ -367,6 +382,7 @@ function ejecutarIrADetalleSinPush(sedeId, isRestoring = false) {
         localStorage.setItem('riveroll_active_sede_id', sedeId);
         localStorage.setItem('riveroll_active_sub_view', 'miembros');
         localStorage.removeItem('riveroll_active_categoria_id');
+        restorationAttempted = false;
     }
     
     const btnMiembros = document.getElementById('subtab-miembros-btn');
@@ -420,6 +436,7 @@ function ejecutarVolverAlDashboardSinPush() {
     localStorage.removeItem('riveroll_active_sub_view');
     localStorage.removeItem('riveroll_active_categoria_id');
     document.body.classList.remove('focus-attendance-mode');
+    restorationAttempted = false;
     
     document.getElementById('panel-detalle-sede').classList.remove('active');
     document.getElementById('panel-dashboard').classList.add('active');
