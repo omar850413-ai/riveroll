@@ -121,19 +121,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
                     } else {
+                        // Si el documento de usuario no existe en Firestore pero el login es exitoso,
+                        // significa que es un usuario ya registrado previamente (anterior al sistema de aprobación).
+                        // Se le auto-aprueba para no bloquear su acceso y conservar su academia/gimnasio.
                         currentUserData = {
                             name: user.email.split('@')[0].toUpperCase(),
                             email: user.email,
-                            approved: isSuperAdmin,
+                            approved: true,
                             isAdmin: isSuperAdmin
                         };
                         firestoreDb.collection("users").doc(user.uid).set(currentUserData).catch(err => console.log(err));
-                        
-                        if (!isSuperAdmin) {
-                            firebase.auth().signOut();
-                            alert("SOLICITUD ENVIADA. TU CUENTA DEBE SER APROBADA POR EL ADMINISTRADOR.");
-                            return;
-                        }
                     }
                     
                     state.currentUser = user;

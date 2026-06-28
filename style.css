@@ -999,3 +999,17 @@ body {
     width: 100%;
 }
 
+/* Forzar color de texto en inputs y autofill de navegador */
+.form-control, input, select, textarea {
+    color: #ffffff !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-box-shadow: 0 0 0px 1000px #1f2937 inset !important; /* fondo oscuro */
+    transition: background-color 5000s ease-in-out 0s;
+}
+
