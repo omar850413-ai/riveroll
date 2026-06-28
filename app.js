@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '21.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '21.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '22.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '22.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -1731,7 +1731,9 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
     } else if (tipo === 'soccer') {
         const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
         if (!cat) return;
-        const weekStr = document.getElementById('asistencias-semana-select').value;
+        const dateInput = document.getElementById('asistencias-fecha-select');
+        const fechaSeleccionada = dateInput ? dateInput.value || obtenerFechaActualStr() : obtenerFechaActualStr();
+        const weekStr = getWeekString(new Date(fechaSeleccionada + 'T00:00:00'));
         const weekDates = getDatesOfWeek(weekStr);
         const alumnosCat = state.alumnos.filter(alu => {
             if (alu.sedeId !== state.activeSedeId) return false;
@@ -1813,7 +1815,9 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
             </div>
         `;
     } else if (tipo === 'gym') {
-        const weekStr = document.getElementById('asistencias-semana-select-gym').value;
+        const dateInput = document.getElementById('asistencias-fecha-select-gym');
+        const fechaSeleccionada = dateInput ? dateInput.value || obtenerFechaActualStr() : obtenerFechaActualStr();
+        const weekStr = getWeekString(new Date(fechaSeleccionada + 'T00:00:00'));
         const weekDates = getDatesOfWeek(weekStr);
         const alumnosGym = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
         const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
@@ -3097,7 +3101,9 @@ function descargarAsistenciasPDF(tipo) {
         const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
         if (!cat) return;
         
-        weekStr = document.getElementById('asistencias-semana-select').value;
+        const dateInput = document.getElementById('asistencias-fecha-select');
+        const fechaSeleccionada = dateInput ? dateInput.value || obtenerFechaActualStr() : obtenerFechaActualStr();
+        weekStr = getWeekString(new Date(fechaSeleccionada + 'T00:00:00'));
         catNombre = cat.nombre.toUpperCase();
         diasEntrenamiento = cat.diasEntrenamiento;
         
@@ -3110,7 +3116,9 @@ function descargarAsistenciasPDF(tipo) {
         
         asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
     } else {
-        weekStr = document.getElementById('asistencias-semana-select-gym').value;
+        const dateInput = document.getElementById('asistencias-fecha-select-gym');
+        const fechaSeleccionada = dateInput ? dateInput.value || obtenerFechaActualStr() : obtenerFechaActualStr();
+        weekStr = getWeekString(new Date(fechaSeleccionada + 'T00:00:00'));
         catNombre = "ASISTENCIA GENERAL GIMNASIO";
         diasEntrenamiento = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
         
