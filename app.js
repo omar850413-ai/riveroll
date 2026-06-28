@@ -58,6 +58,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const userEmail = user.email.toLowerCase();
             const isSuperAdmin = SUPER_ADMINS.includes(userEmail);
             
+            if (isSuperAdmin) {
+                state.currentUser = user;
+                state.isSuperAdmin = true;
+                window.db.setCurrentUser(user);
+                
+                document.getElementById('auth-overlay').style.display = 'none';
+                
+                const userApprovalBtn = document.getElementById('btn-aceptar-usuarios');
+                if (userApprovalBtn) {
+                    userApprovalBtn.style.display = 'inline-flex';
+                }
+                
+                suscribirColecciones();
+                actualizarBotonEstadoNube();
+                
+                // Guardar/actualizar datos del superadmin de forma silenciosa en segundo plano
+                if (window.db && window.db.isNubeActiva() && firebase.apps.length > 0) {
+                    const firestoreDb = firebase.firestore();
+                    firestoreDb.collection("users").doc(user.uid).set({
+                        name: user.email.split('@')[0].toUpperCase(),
+                        email: user.email,
+                        approved: true,
+                        isAdmin: true
+                    }).catch(err => console.log("Error silencioso al registrar superadmin:", err));
+                }
+                return;
+            }
+            
             if (window.db && window.db.isNubeActiva() && firebase.apps.length > 0) {
                 const firestoreDb = firebase.firestore();
                 firestoreDb.collection("users").doc(user.uid).get().then(doc => {
