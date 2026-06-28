@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '16.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '16.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '17.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '17.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -475,6 +475,21 @@ function switchSedeView(viewId) {
         } else if (viewId === 'categorias') {
             if (btnCats) btnCats.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
             if (pCats) pCats.style.display = 'block';
+            
+            // Ajustar vista inicial móvil/escritorio
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                document.getElementById('categorias-sidebar-col').style.display = 'block';
+                document.getElementById('categorias-detalle-container').style.display = 'none';
+                document.getElementById('btn-volver-categorias').style.display = 'none';
+                const subTabs = document.querySelector('.sub-tabs-container');
+                if (subTabs) subTabs.style.display = 'flex';
+            } else {
+                document.getElementById('categorias-sidebar-col').style.display = 'block';
+                document.getElementById('categorias-detalle-container').style.display = 'block';
+                document.getElementById('btn-volver-categorias').style.display = 'none';
+            }
+            
             renderCategoriasSidebar();
         } else if (viewId === 'asistencias-gym') {
             if (btnAsistGym) btnAsistGym.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
@@ -484,7 +499,7 @@ function switchSedeView(viewId) {
             if (semSelect && !semSelect.value) {
                 semSelect.value = getWeekString(new Date());
             }
-            cargarPaseAsistenciaGym();
+            actualizarDiasGymDropdown();
         }
     } catch (e) {
         alert("ERROR en switchSedeView: " + e.message + "\nStack: " + e.stack);
@@ -1706,12 +1721,16 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
             });
         }
 
+        const fechaInicio = weekDates["Lunes"];
+        const fechaFin = weekDates["Sábado"];
+        const rangeText = `DEL ${fechaInicio.split('-').reverse().slice(0, 2).join('/')} AL ${fechaFin.split('-').reverse().slice(0, 2).join('/')}`;
+
         bodyHtml = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
                 <div>
                     <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
                     <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Categoría: ${cat.nombre.toUpperCase()} | Rango de Edad: ${cat.anioInicio}-${cat.anioFin}</p>
-                    <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.85rem; font-weight: bold;">SEMANA: ${weekStr}</p>
+                    <p style="margin: 0.25rem 0 0 0; color: #1e3b8a; font-size: 0.85rem; font-weight: bold; text-transform: uppercase;">ASISTENCIAS DE LA SEMANA: ${rangeText}</p>
                 </div>
                 <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
             </div>
@@ -1722,7 +1741,7 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
                     <tr style="text-align: left;">
                         <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; font-size: 0.85rem;">Alumno</th>
                         ${diasHeaders}
-                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; text-align: center; font-size: 0.85rem;">Faltas</th>
+                        <th style="padding: 0.5rem; color: #ef4444; border-bottom: 2px solid #000; text-align: center; font-size: 0.85rem;">Faltas (${rangeText})</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1778,12 +1797,16 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
             });
         }
 
+        const fechaInicio = weekDates["Lunes"];
+        const fechaFin = weekDates["Sábado"];
+        const rangeText = `DEL ${fechaInicio.split('-').reverse().slice(0, 2).join('/')} AL ${fechaFin.split('-').reverse().slice(0, 2).join('/')}`;
+
         bodyHtml = `
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
                 <div>
                     <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
                     <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Registro General de Asistencias - Gimnasio</p>
-                    <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.85rem; font-weight: bold;">SEMANA: ${weekStr}</p>
+                    <p style="margin: 0.25rem 0 0 0; color: #1e3b8a; font-size: 0.85rem; font-weight: bold; text-transform: uppercase;">ASISTENCIAS DE LA SEMANA: ${rangeText}</p>
                 </div>
                 <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
             </div>
@@ -1794,7 +1817,7 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
                     <tr style="text-align: left;">
                         <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; font-size: 0.85rem;">Integrante</th>
                         ${diasHeaders}
-                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000; text-align: center; font-size: 0.85rem;">Faltas</th>
+                        <th style="padding: 0.5rem; color: #ef4444; border-bottom: 2px solid #000; text-align: center; font-size: 0.85rem;">Faltas (${rangeText})</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2655,6 +2678,21 @@ function seleccionarCategoria(id) {
     state.activeCategoriaId = id;
     renderCategoriasSidebar();
     
+    // Ajustar vista móvil/escritorio para pantalla completa
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        document.getElementById('categorias-sidebar-col').style.display = 'none';
+        document.getElementById('categorias-detalle-container').style.display = 'block';
+        document.getElementById('btn-volver-categorias').style.display = 'block';
+        // Ocultar tabs de navegación interna para usar toda la pantalla
+        const subTabs = document.querySelector('.sub-tabs-container');
+        if (subTabs) subTabs.style.display = 'none';
+    } else {
+        document.getElementById('categorias-sidebar-col').style.display = 'block';
+        document.getElementById('categorias-detalle-container').style.display = 'block';
+        document.getElementById('btn-volver-categorias').style.display = 'none';
+    }
+
     document.getElementById('categorias-placeholder').style.display = 'none';
     document.getElementById('categoria-detalle-contenido').style.display = 'block';
     
@@ -2669,7 +2707,104 @@ function seleccionarCategoria(id) {
         semSelect.value = getWeekString(new Date());
     }
     
+    actualizarDiasEntrenamientoDropdown();
+}
+
+function volverAListaCategorias() {
+    document.getElementById('categorias-sidebar-col').style.display = 'block';
+    document.getElementById('categorias-detalle-container').style.display = 'none';
+    document.getElementById('btn-volver-categorias').style.display = 'none';
+    
+    // Restaurar barra de navegación interna si existe
+    const subTabs = document.querySelector('.sub-tabs-container');
+    if (subTabs) subTabs.style.display = 'flex';
+    
+    state.activeCategoriaId = null;
+    renderCategoriasSidebar();
+}
+
+function actualizarDiasEntrenamientoDropdown() {
+    const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+    if (!cat) return;
+    
+    const weekSelect = document.getElementById('asistencias-semana-select');
+    if (!weekSelect) return;
+    const weekStr = weekSelect.value;
+    if (!weekStr) return;
+    
+    const weekDates = getDatesOfWeek(weekStr);
+    const diaSelect = document.getElementById('asistencias-dia-select');
+    if (!diaSelect) return;
+    
+    diaSelect.innerHTML = "";
+    cat.diasEntrenamiento.forEach(dia => {
+        const fechaDia = weekDates[dia];
+        const labelFecha = fechaDia ? fechaDia.split('-').slice(1).reverse().join('/') : '';
+        const opt = document.createElement('option');
+        opt.value = fechaDia;
+        opt.innerText = `${dia.toUpperCase()} (${labelFecha})`;
+        diaSelect.appendChild(opt);
+    });
+    
     cargarPaseAsistenciaCategoria();
+}
+
+function actualizarDiasGymDropdown() {
+    const weekSelect = document.getElementById('asistencias-semana-select-gym');
+    if (!weekSelect) return;
+    const weekStr = weekSelect.value;
+    if (!weekStr) return;
+    
+    const weekDates = getDatesOfWeek(weekStr);
+    const diaSelect = document.getElementById('asistencias-dia-select-gym');
+    if (!diaSelect) return;
+    
+    const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    diaSelect.innerHTML = "";
+    diasGym.forEach(dia => {
+        const fechaDia = weekDates[dia];
+        const labelFecha = fechaDia ? fechaDia.split('-').slice(1).reverse().join('/') : '';
+        const opt = document.createElement('option');
+        opt.value = fechaDia;
+        opt.innerText = `${dia.toUpperCase()} (${labelFecha})`;
+        diaSelect.appendChild(opt);
+    });
+    
+    cargarPaseAsistenciaGym();
+}
+
+function toggleAsistenciaDraft(aluId, fechaDia, button) {
+    if (!state.asistenciaDraft) {
+        state.asistenciaDraft = {};
+    }
+    if (!state.asistenciaDraft[fechaDia]) {
+        state.asistenciaDraft[fechaDia] = {};
+    }
+    
+    const estadoActual = state.asistenciaDraft[fechaDia][aluId] || 'falta';
+    const nuevoEstado = estadoActual === 'asistencia' ? 'falta' : 'asistencia';
+    state.asistenciaDraft[fechaDia][aluId] = nuevoEstado;
+    
+    const esAsistencia = nuevoEstado === 'asistencia';
+    button.innerText = esAsistencia ? 'PRESENTE' : 'FALTA';
+    button.style = `min-width: 120px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${esAsistencia ? 'background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid #10b981;' : 'background-color: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid #ef4444;'}`;
+}
+
+function toggleAsistenciaDraftGym(aluId, fechaDia, button) {
+    if (!state.asistenciaDraftGym) {
+        state.asistenciaDraftGym = {};
+    }
+    if (!state.asistenciaDraftGym[fechaDia]) {
+        state.asistenciaDraftGym[fechaDia] = {};
+    }
+    
+    const estadoActual = state.asistenciaDraftGym[fechaDia][aluId] || 'falta';
+    const nuevoEstado = estadoActual === 'asistencia' ? 'falta' : 'asistencia';
+    state.asistenciaDraftGym[fechaDia][aluId] = nuevoEstado;
+    
+    const esAsistencia = nuevoEstado === 'asistencia';
+    button.innerText = esAsistencia ? 'PRESENTE' : 'FALTA';
+    button.style = `min-width: 120px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${esAsistencia ? 'background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid #10b981;' : 'background-color: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid #ef4444;'}`;
 }
 
 async function eliminarCategoriaSeleccionada() {
@@ -2679,7 +2814,7 @@ async function eliminarCategoriaSeleccionada() {
             state.activeCategoriaId = null;
             document.getElementById('categorias-placeholder').style.display = 'block';
             document.getElementById('categoria-detalle-contenido').style.display = 'none';
-            renderCategoriasSidebar();
+            volverAListaCategorias();
         } catch (err) {
             console.error("Error al eliminar categoría:", err);
         }
@@ -2695,20 +2830,42 @@ function cargarPaseAsistenciaCategoria() {
     const cuerpo = document.getElementById('tabla-asistencia-cuerpo');
     if (!cabecera || !cuerpo) return;
     
-    const weekStr = document.getElementById('asistencias-semana-select').value;
+    const weekSelect = document.getElementById('asistencias-semana-select');
+    if (!weekSelect) return;
+    const weekStr = weekSelect.value;
     if (!weekStr) return;
     
     const weekDates = getDatesOfWeek(weekStr);
     
-    // 1. Armar Cabecera de la Tabla
-    cabecera.innerHTML = `<th style="text-align: left;">Alumno</th>`;
-    cat.diasEntrenamiento.forEach(dia => {
-        const fechaDia = weekDates[dia];
-        const labelFecha = fechaDia ? fechaDia.split('-').slice(1).join('/') : '';
-        cabecera.innerHTML += `<th style="text-align: center; width: 110px;">${dia}<br><small style="color: #9ca3af; font-size:0.7rem;">${labelFecha}</small></th>`;
-    });
+    const diaSelect = document.getElementById('asistencias-dia-select');
+    if (!diaSelect) return;
+    const fechaDiaSeleccionado = diaSelect.value;
+    if (!fechaDiaSeleccionado) return;
     
-    // 2. Filtrar Alumnos por Categoría
+    // Cargar asistencias guardadas
+    const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
+    
+    if (!state.asistenciaDraft || state.asistenciaDraft._weekStr !== weekStr || state.asistenciaDraft._catId !== cat.id) {
+        state.asistenciaDraft = {
+            _weekStr: weekStr,
+            _catId: cat.id
+        };
+        
+        cat.diasEntrenamiento.forEach(dia => {
+            const fDia = weekDates[dia];
+            state.asistenciaDraft[fDia] = {};
+            const dbDiaEntry = asistenciasSemana.find(a => a.fecha === fDia);
+            if (dbDiaEntry && dbDiaEntry.registros) {
+                state.asistenciaDraft[fDia] = { ...dbDiaEntry.registros };
+            }
+        });
+    }
+    
+    cabecera.innerHTML = `
+        <th style="text-align: left;">Alumno</th>
+        <th style="text-align: center; width: 150px;">Estatus Asistencia</th>
+    `;
+    
     const alumnosCat = state.alumnos.filter(alu => {
         if (alu.sedeId !== state.activeSedeId) return false;
         if (!alu.fechaNacimiento) return false;
@@ -2718,36 +2875,30 @@ function cargarPaseAsistenciaCategoria() {
     
     cuerpo.innerHTML = "";
     if (alumnosCat.length === 0) {
-        cuerpo.innerHTML = `<tr><td colspan="${cat.diasEntrenamiento.length + 1}" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES QUE CORRESPONDAN AL RANGO DE EDAD DE ESTA CATEGORÍA (${cat.anioInicio}-${cat.anioFin})</td></tr>`;
+        cuerpo.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES QUE CORRESPONDAN AL RANGO DE EDAD DE ESTA CATEGORÍA (${cat.anioInicio}-${cat.anioFin})</td></tr>`;
         return;
     }
     
-    // Cargar asistencias ya guardadas para esta semana y categoría
-    const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
-    
     alumnosCat.forEach(alu => {
         const tr = document.createElement('tr');
-        let html = `
+        if (!state.asistenciaDraft[fechaDiaSeleccionado]) {
+            state.asistenciaDraft[fechaDiaSeleccionado] = {};
+        }
+        const estado = state.asistenciaDraft[fechaDiaSeleccionado][alu.id] || 'falta';
+        const esAsistencia = estado === 'asistencia';
+        const bgBtn = esAsistencia ? 'background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid #10b981;' : 'background-color: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid #ef4444;';
+        
+        tr.innerHTML = `
             <td style="color: #fff; font-weight: 600; text-transform: uppercase;">
                 ${alu.nombre}
                 <div style="font-size: 0.7rem; color: #9ca3af;">AÑO NAC: ${alu.fechaNacimiento ? alu.fechaNacimiento.split('-')[0] : 'N/A'}</div>
             </td>
+            <td style="text-align: center; vertical-align: middle;">
+                <button type="button" class="btn btn-sm" style="min-width: 120px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${bgBtn}" onclick="toggleAsistenciaDraft('${alu.id}', '${fechaDiaSeleccionado}', this)">
+                    ${esAsistencia ? 'PRESENTE' : 'FALTA'}
+                </button>
+            </td>
         `;
-        
-        cat.diasEntrenamiento.forEach(dia => {
-            const fechaDia = weekDates[dia];
-            const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
-            const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
-            const checked = estado === 'asistencia' ? 'checked' : '';
-            
-            html += `
-                <td style="text-align: center; vertical-align: middle;">
-                    <input type="checkbox" name="asist-${alu.id}-${fechaDia}" value="asistencia" ${checked} style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--color-accent);">
-                </td>
-            `;
-        });
-        
-        tr.innerHTML = html;
         cuerpo.appendChild(tr);
     });
 }
@@ -2761,22 +2912,10 @@ async function guardarAsistenciaCategoria() {
     
     const weekDates = getDatesOfWeek(weekStr);
     
-    const alumnosCat = state.alumnos.filter(alu => {
-        if (alu.sedeId !== state.activeSedeId) return false;
-        if (!alu.fechaNacimiento) return false;
-        const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
-        return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
-    });
-    
     try {
         for (const dia of cat.diasEntrenamiento) {
             const fechaDia = weekDates[dia];
-            const registros = {};
-            
-            alumnosCat.forEach(alu => {
-                const cb = document.querySelector(`input[name="asist-${alu.id}-${fechaDia}"]`);
-                registros[alu.id] = (cb && cb.checked) ? 'asistencia' : 'falta';
-            });
+            const registros = state.asistenciaDraft[fechaDia] || {};
             
             await window.db.guardarAsistencia({
                 fecha: fechaDia,
@@ -2798,45 +2937,61 @@ function cargarPaseAsistenciaGym() {
     const cuerpo = document.getElementById('tabla-asistencia-cuerpo-gym');
     if (!cuerpo) return;
     
-    const weekStr = document.getElementById('asistencias-semana-select-gym').value;
+    const weekSelect = document.getElementById('asistencias-semana-select-gym');
+    if (!weekSelect) return;
+    const weekStr = weekSelect.value;
     if (!weekStr) return;
     
     const weekDates = getDatesOfWeek(weekStr);
-    const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const diaSelect = document.getElementById('asistencias-dia-select-gym');
+    if (!diaSelect) return;
+    const fechaDiaSeleccionado = diaSelect.value;
+    if (!fechaDiaSeleccionado) return;
     
-    // Filtrar suscriptores del gimnasio
     const suscriptores = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
     
     cuerpo.innerHTML = "";
     if (suscriptores.length === 0) {
-        cuerpo.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES O SUSCRIPTORES REGISTRADOS EN ESTE GIMNASIO</td></tr>`;
+        cuerpo.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES O SUSCRIPTORES REGISTRADOS EN ESTE GIMNASIO</td></tr>`;
         return;
     }
     
     const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
+    const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    
+    if (!state.asistenciaDraftGym || state.asistenciaDraftGym._weekStr !== weekStr) {
+        state.asistenciaDraftGym = {
+            _weekStr: weekStr
+        };
+        diasGym.forEach(dia => {
+            const fDia = weekDates[dia];
+            state.asistenciaDraftGym[fDia] = {};
+            const dbDiaEntry = asistenciasSemana.find(a => a.fecha === fDia);
+            if (dbDiaEntry && dbDiaEntry.registros) {
+                state.asistenciaDraftGym[fDia] = { ...dbDiaEntry.registros };
+            }
+        });
+    }
     
     suscriptores.forEach(alu => {
         const tr = document.createElement('tr');
-        let html = `
+        if (!state.asistenciaDraftGym[fechaDiaSeleccionado]) {
+            state.asistenciaDraftGym[fechaDiaSeleccionado] = {};
+        }
+        const estado = state.asistenciaDraftGym[fechaDiaSeleccionado][alu.id] || 'falta';
+        const esAsistencia = estado === 'asistencia';
+        const bgBtn = esAsistencia ? 'background-color: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid #10b981;' : 'background-color: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid #ef4444;';
+        
+        tr.innerHTML = `
             <td style="color: #fff; font-weight: 600; text-transform: uppercase;">
                 ${alu.nombre}
             </td>
+            <td style="text-align: center; vertical-align: middle;">
+                <button type="button" class="btn btn-sm" style="min-width: 120px; font-weight: bold; border-radius: 20px; padding: 0.5rem 1rem; transition: all 0.2s; ${bgBtn}" onclick="toggleAsistenciaDraftGym('${alu.id}', '${fechaDiaSeleccionado}', this)">
+                    ${esAsistencia ? 'PRESENTE' : 'FALTA'}
+                </button>
+            </td>
         `;
-        
-        diasGym.forEach(dia => {
-            const fechaDia = weekDates[dia];
-            const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
-            const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
-            const checked = estado === 'asistencia' ? 'checked' : '';
-            
-            html += `
-                <td style="text-align: center; vertical-align: middle;">
-                    <input type="checkbox" name="asistgym-${alu.id}-${fechaDia}" value="asistencia" ${checked} style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--color-accent);">
-                </td>
-            `;
-        });
-        
-        tr.innerHTML = html;
         cuerpo.appendChild(tr);
     });
 }
@@ -2848,17 +3003,10 @@ async function guardarAsistenciaGym() {
     const weekDates = getDatesOfWeek(weekStr);
     const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
-    const suscriptores = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
-    
     try {
         for (const dia of diasGym) {
             const fechaDia = weekDates[dia];
-            const registros = {};
-            
-            suscriptores.forEach(alu => {
-                const cb = document.querySelector(`input[name="asistgym-${alu.id}-${fechaDia}"]`);
-                registros[alu.id] = (cb && cb.checked) ? 'asistencia' : 'falta';
-            });
+            const registros = state.asistenciaDraftGym[fechaDia] || {};
             
             await window.db.guardarAsistencia({
                 fecha: fechaDia,

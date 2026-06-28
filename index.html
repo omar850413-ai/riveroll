@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v16') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v16', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v17') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v17', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -328,9 +328,9 @@
 
                 <!-- Sub-Panel: Categorías / Asistencia (Pestaña 5 - Soccer) -->
                 <div id="sub-panel-categorias" class="sede-sub-view" style="display: none;">
-                    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: flex-start;">
+                    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: flex-start;" id="categorias-layout-grid">
                         <!-- Columna Izquierda: Categorías -->
-                        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;" id="categorias-sidebar-col">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.1rem; margin: 0;"><i class="fa-solid fa-folder-tree"></i> Categorías</h4>
                                 <button class="btn btn-accent btn-sm" onclick="openAddCategoriaModal()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">
@@ -344,6 +344,8 @@
 
                         <!-- Columna Derecha: Detalle y Asistencia -->
                         <div class="glass-panel" style="padding: 1.5rem;" id="categorias-detalle-container">
+                            <button class="btn btn-outline btn-sm" id="btn-volver-categorias" onclick="volverAListaCategorias()" style="display: none; margin-bottom: 1rem; width: 100%; border-color: var(--color-accent); color: var(--color-accent); font-weight: bold;"><i class="fa-solid fa-arrow-left"></i> Volver a Lista de Categorías</button>
+                            
                             <div style="text-align: center; padding: 3rem 1.5rem; color: var(--color-text-muted);" id="categorias-placeholder">
                                 <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; color: var(--color-accent); opacity: 0.6;"></i>
                                 <p style="font-size: 0.95rem; margin: 0;">SELECCIONA O CREA UNA CATEGORÍA PARA EMPEZAR EL PASE DE ASISTENCIA</p>
@@ -365,10 +367,16 @@
                                     </div>
                                 </div>
 
-                                <!-- Selector de Semana -->
-                                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                                    <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
-                                    <input type="week" id="asistencias-semana-select" class="form-control" style="max-width: 220px; padding: 0.4rem 0.8rem; margin: 0;" onchange="cargarPaseAsistenciaCategoria()">
+                                <!-- Selector de Semana y Día -->
+                                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                        <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
+                                        <input type="week" id="asistencias-semana-select" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="actualizarDiasEntrenamientoDropdown()">
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                        <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Día:</label>
+                                        <select id="asistencias-dia-select" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaCategoria()"></select>
+                                    </div>
                                 </div>
 
                                 <!-- Tabla de Asistencia Semanal -->
@@ -406,24 +414,25 @@
                             </button>
                         </div>
 
-                        <!-- Selector de Semana para Gym -->
-                        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
-                            <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
-                            <input type="week" id="asistencias-semana-select-gym" class="form-control" style="max-width: 220px; padding: 0.4rem 0.8rem; margin: 0;" onchange="cargarPaseAsistenciaGym()">
+                        <!-- Selector de Semana para Gym y Día -->
+                        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-week"></i> Semana:</label>
+                                <input type="week" id="asistencias-semana-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="actualizarDiasGymDropdown()">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Día:</label>
+                                <select id="asistencias-dia-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()"></select>
+                            </div>
                         </div>
 
-                        <!-- Tabla de Asistencia Semanal (Lunes a Sábado por defecto en Gym) -->
+                        <!-- Tabla de Asistencia Gym (Un solo día) -->
                         <div class="table-container" style="overflow-x: auto; margin-bottom: 1.5rem;">
-                            <table class="accounting-table" style="min-width: 700px;">
+                            <table class="accounting-table" style="min-width: 500px;">
                                 <thead>
                                     <tr id="tabla-asistencia-cabecera-gym">
-                                        <th>Integrante</th>
-                                        <th>Lun</th>
-                                        <th>Mar</th>
-                                        <th>Mié</th>
-                                        <th>Jue</th>
-                                        <th>Vie</th>
-                                        <th>Sáb</th>
+                                        <th style="text-align: left;">Integrante</th>
+                                        <th style="text-align: center; width: 150px;">Estatus Asistencia</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabla-asistencia-cuerpo-gym">
@@ -1057,7 +1066,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=16"></script>
-    <script src="app.js?v=16"></script>
+    <script src="db.js?v=17"></script>
+    <script src="app.js?v=17"></script>
 </body>
 </html>
