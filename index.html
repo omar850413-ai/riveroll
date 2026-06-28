@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v23') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v23', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v24') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v24', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -362,19 +362,25 @@
                                     </div>
                                     <div style="display: flex; gap: 0.5rem;">
                                         <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('soccer')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
-                        <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+                                            <i class="fa-solid fa-file-pdf"></i> Reporte PDF
                                         </button>
-                                        <button class="btn btn-danger btn-sm" onclick="eliminarCategoriaSeleccionada()" style="background: rgba(239, 68, 68, 0.1); color: var(--color-danger); border: 1px solid var(--color-danger);">
+                                        <button class="btn btn-danger btn-sm" id="btn-eliminar-categoria-selected" onclick="eliminarCategoriaSeleccionada()" style="background: rgba(239, 68, 68, 0.1); color: var(--color-danger); border: 1px solid var(--color-danger);">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     </div>
                                 </div>
 
-                                <!-- Selector de Fecha con Calendario -->
+                                 <!-- Selector de Fecha con Calendario y Selector de Categorías -->
                                  <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; width: 100%;">
-                                     <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 250px;">
-                                         <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold;"><i class="fa-solid fa-calendar-day"></i> Seleccionar Fecha:</label>
+                                     <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                         <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-calendar-day"></i> Fecha:</label>
                                          <input type="date" id="asistencias-fecha-select" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaCategoria()">
+                                     </div>
+                                     <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                         <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-graduation-cap"></i> Categoría:</label>
+                                         <select id="asistencias-categoria-select" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="seleccionarCategoriaDesdeFiltro()">
+                                             <option value="todas">TODAS LAS CATEGORÍAS</option>
+                                         </select>
                                      </div>
                                  </div>
 
@@ -1045,7 +1051,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=23"></script>
-    <script src="app.js?v=23"></script>
+    <script src="db.js?v=24"></script>
+    <script src="app.js?v=24"></script>
 </body>
 </html>

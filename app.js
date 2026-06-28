@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '23.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '23.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '24.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '24.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -2723,6 +2723,19 @@ function renderCategoriasSidebar() {
     if (!sidebar) return;
     sidebar.innerHTML = "";
     
+    // Botón especial para Ver Todas las Categorías
+    const btnTodas = document.createElement('button');
+    btnTodas.type = "button";
+    const isTodasActive = state.activeCategoriaId === 'todas';
+    btnTodas.className = `btn btn-full ${isTodasActive ? 'active' : ''}`;
+    btnTodas.style = `text-align: left; padding: 0.9rem 1.2rem; border: ${isTodasActive ? '2px solid #f97316' : '1px solid var(--border-color)'}; background: ${isTodasActive ? 'rgba(249, 115, 22, 0.25) !important' : 'rgba(255, 255, 255, 0.03) !important'}; margin-bottom: 0.75rem; font-size: 1.05rem; display: flex; flex-direction: column; gap: 0.25rem; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
+    btnTodas.innerHTML = `
+        <strong style="color: #fff; font-size: 1.1rem; font-weight: bold;"><i class="fa-solid fa-layer-group"></i> Todas las Categorías</strong>
+        <span style="font-size: 0.78rem; color: ${isTodasActive ? '#fff' : 'var(--color-text-muted)'}; font-weight: 500;">Pase de lista general de la sede</span>
+    `;
+    btnTodas.onclick = () => seleccionarCategoria('todas');
+    sidebar.appendChild(btnTodas);
+    
     const cats = state.categorias.filter(c => c.sedeId === state.activeSedeId);
     
     if (cats.length === 0) {
@@ -2758,31 +2771,69 @@ function seleccionarCategoria(id) {
     document.body.classList.add('focus-attendance-mode');
     
     // Ajustar vista móvil/escritorio para pantalla completa
-    const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
-        document.getElementById('categorias-sidebar-col').style.display = 'none';
-        document.getElementById('categorias-detalle-container').style.display = 'block';
-        document.getElementById('btn-volver-categorias').style.display = 'block';
-    } else {
-        document.getElementById('categorias-sidebar-col').style.display = 'none';
-        document.getElementById('categorias-detalle-container').style.display = 'block';
-        document.getElementById('btn-volver-categorias').style.display = 'block';
-    }
+    document.getElementById('categorias-sidebar-col').style.display = 'none';
+    document.getElementById('categorias-detalle-container').style.display = 'block';
+    document.getElementById('btn-volver-categorias').style.display = 'block';
 
     document.getElementById('categorias-placeholder').style.display = 'none';
     document.getElementById('categoria-detalle-contenido').style.display = 'block';
     
-    const cat = state.categorias.find(c => c.id === id);
-    if (!cat) return;
+    const isTodas = id === 'todas';
+    const btnEliminar = document.getElementById('btn-eliminar-categoria-selected');
     
-    document.getElementById('cat-detalle-nombre').innerText = cat.nombre.toUpperCase();
-    document.getElementById('cat-detalle-meta').innerText = `RANGO DE EDAD: ${cat.anioInicio} - ${cat.anioFin} | ENTRENAMIENTOS: ${cat.diasEntrenamiento.join(', ')}`;
+    if (isTodas) {
+        document.getElementById('cat-detalle-nombre').innerText = "TODAS LAS CATEGORÍAS";
+        document.getElementById('cat-detalle-meta').innerText = "LISTA COMPLETA DE ALUMNOS DE LA ACADEMIA";
+        if (btnEliminar) btnEliminar.style.display = 'none';
+    } else {
+        const cat = state.categorias.find(c => c.id === id);
+        if (cat) {
+            document.getElementById('cat-detalle-nombre').innerText = cat.nombre.toUpperCase();
+            document.getElementById('cat-detalle-meta').innerText = `RANGO DE EDAD: ${cat.anioInicio} - ${cat.anioFin} | ENTRENAMIENTOS: ${cat.diasEntrenamiento.join(', ')}`;
+            if (btnEliminar) btnEliminar.style.display = 'inline-flex';
+        }
+    }
+    
+    // Sincronizar valor en el selector
+    const selectCat = document.getElementById('asistencias-categoria-select');
+    if (selectCat) {
+        selectCat.value = id;
+    }
     
     const dateInput = document.getElementById('asistencias-fecha-select');
     if (dateInput && !dateInput.value) {
         dateInput.value = obtenerFechaActualStr();
     }
     
+    cargarPaseAsistenciaCategoria();
+}
+
+function seleccionarCategoriaDesdeFiltro() {
+    const selectCat = document.getElementById('asistencias-categoria-select');
+    if (!selectCat) return;
+    const catId = selectCat.value;
+    
+    state.activeCategoriaId = catId;
+    localStorage.setItem('riveroll_active_categoria_id', catId);
+    
+    // Actualizamos los textos de la cabecera
+    const isTodas = catId === 'todas';
+    const btnEliminar = document.getElementById('btn-eliminar-categoria-selected');
+    
+    if (isTodas) {
+        document.getElementById('cat-detalle-nombre').innerText = "TODAS LAS CATEGORÍAS";
+        document.getElementById('cat-detalle-meta').innerText = "LISTA COMPLETA DE ALUMNOS DE LA ACADEMIA";
+        if (btnEliminar) btnEliminar.style.display = 'none';
+    } else {
+        const cat = state.categorias.find(c => c.id === catId);
+        if (cat) {
+            document.getElementById('cat-detalle-nombre').innerText = cat.nombre.toUpperCase();
+            document.getElementById('cat-detalle-meta').innerText = `RANGO DE EDAD: ${cat.anioInicio} - ${cat.anioFin} | ENTRENAMIENTOS: ${cat.diasEntrenamiento.join(', ')}`;
+            if (btnEliminar) btnEliminar.style.display = 'inline-flex';
+        }
+    }
+    
+    renderCategoriasSidebar();
     cargarPaseAsistenciaCategoria();
 }
 
@@ -2860,7 +2911,11 @@ async function eliminarCategoriaSeleccionada() {
 
 // --- PASE DE ASISTENCIA (CATEGORÍA FÚTBOL) ---
 function cargarPaseAsistenciaCategoria() {
-    const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+    const isTodas = state.activeCategoriaId === 'todas';
+    const cat = isTodas 
+        ? { id: 'todas', nombre: 'TODAS LAS CATEGORÍAS', diasEntrenamiento: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"], anioInicio: 2000, anioFin: 2030 } 
+        : state.categorias.find(c => c.id === state.activeCategoriaId);
+        
     if (!cat) return;
     
     const container = document.getElementById('lista-asistencia-tarjetas');
@@ -2870,6 +2925,28 @@ function cargarPaseAsistenciaCategoria() {
     if (!dateInput) return;
     const fechaSeleccionada = dateInput.value;
     if (!fechaSeleccionada) return;
+    
+    // Llenar el selector de categorías en la cabecera
+    const selectCat = document.getElementById('asistencias-categoria-select');
+    if (selectCat) {
+        const catsSede = state.categorias.filter(c => c.sedeId === state.activeSedeId);
+        const currentVal = selectCat.value || state.activeCategoriaId;
+        
+        // Regenerar opciones si cambió el número de categorías
+        const currentOptions = Array.from(selectCat.options).map(o => o.value).filter(v => v !== 'todas');
+        const changed = currentOptions.length !== catsSede.length || !catsSede.every(c => currentOptions.includes(c.id));
+        
+        if (changed) {
+            selectCat.innerHTML = '<option value="todas">TODAS LAS CATEGORÍAS</option>';
+            catsSede.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = c.nombre.toUpperCase();
+                selectCat.appendChild(opt);
+            });
+            selectCat.value = currentVal;
+        }
+    }
     
     // Obtener la semana y día de la semana correspondientes a la fecha elegida
     const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
@@ -2887,22 +2964,40 @@ function cargarPaseAsistenciaCategoria() {
             _catId: cat.id
         };
         
-        const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
-        cat.diasEntrenamiento.forEach(dia => {
-            const fDia = weekDates[dia];
-            state.asistenciaDraft[fDia] = {};
-            const dbDiaEntry = asistenciasSemana.find(a => a.fecha === fDia);
-            if (dbDiaEntry && dbDiaEntry.registros) {
-                state.asistenciaDraft[fDia] = { ...dbDiaEntry.registros };
-            }
-        });
-        
-        // También pre-cargar la fecha seleccionada si por alguna razón no es día oficial de entrenamiento
-        if (!state.asistenciaDraft[fechaSeleccionada]) {
-            state.asistenciaDraft[fechaSeleccionada] = {};
-            const dbDiaEntry = state.asistencias.find(a => a.fecha === fechaSeleccionada && a.categoriaId === cat.id);
-            if (dbDiaEntry && dbDiaEntry.registros) {
-                state.asistenciaDraft[fechaSeleccionada] = { ...dbDiaEntry.registros };
+        if (isTodas) {
+            const catsSede = state.categorias.filter(c => c.sedeId === state.activeSedeId);
+            const catsIds = catsSede.map(c => c.id);
+            const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && (catsIds.includes(a.categoriaId) || a.categoriaId === 'todas'));
+            
+            cat.diasEntrenamiento.forEach(dia => {
+                const fDia = weekDates[dia];
+                state.asistenciaDraft[fDia] = {};
+            });
+            
+            asistenciasSemana.forEach(dbDiaEntry => {
+                const fDia = dbDiaEntry.fecha;
+                if (!state.asistenciaDraft[fDia]) state.asistenciaDraft[fDia] = {};
+                if (dbDiaEntry.registros) {
+                    state.asistenciaDraft[fDia] = { ...state.asistenciaDraft[fDia], ...dbDiaEntry.registros };
+                }
+            });
+        } else {
+            const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === cat.id);
+            cat.diasEntrenamiento.forEach(dia => {
+                const fDia = weekDates[dia];
+                state.asistenciaDraft[fDia] = {};
+                const dbDiaEntry = asistenciasSemana.find(a => a.fecha === fDia);
+                if (dbDiaEntry && dbDiaEntry.registros) {
+                    state.asistenciaDraft[fDia] = { ...dbDiaEntry.registros };
+                }
+            });
+            
+            if (!state.asistenciaDraft[fechaSeleccionada]) {
+                state.asistenciaDraft[fechaSeleccionada] = {};
+                const dbDiaEntry = state.asistencias.find(a => a.fecha === fechaSeleccionada && a.categoriaId === cat.id);
+                if (dbDiaEntry && dbDiaEntry.registros) {
+                    state.asistenciaDraft[fechaSeleccionada] = { ...dbDiaEntry.registros };
+                }
             }
         }
     }
@@ -2917,15 +3012,26 @@ function cargarPaseAsistenciaCategoria() {
         container.appendChild(warning);
     }
     
-    const alumnosCat = state.alumnos.filter(alu => {
-        if (alu.sedeId !== state.activeSedeId) return false;
-        if (!alu.fechaNacimiento) return false;
-        const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
-        return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
-    });
+    const selectCatElement = document.getElementById('asistencias-categoria-select');
+    const catFiltroVal = selectCatElement ? selectCatElement.value : 'todas';
+    
+    let alumnosCat = [];
+    if (catFiltroVal === 'todas') {
+        alumnosCat = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
+    } else {
+        const c = state.categorias.find(x => x.id === catFiltroVal);
+        if (c) {
+            alumnosCat = state.alumnos.filter(alu => {
+                if (alu.sedeId !== state.activeSedeId) return false;
+                if (!alu.fechaNacimiento) return false;
+                const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
+                return anioNac >= c.anioInicio && anioNac <= c.anioFin;
+            });
+        }
+    }
     
     if (alumnosCat.length === 0) {
-        container.innerHTML += `<div style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES QUE CORRESPONDAN AL RANGO DE EDAD DE ESTA CATEGORÍA (${cat.anioInicio}-${cat.anioFin})</div>`;
+        container.innerHTML += `<div style="text-align: center; color: #9ca3af; padding: 2rem;">NO HAY INTEGRANTES QUE CORRESPONDAN A ESTA SELECCIÓN</div>`;
         return;
     }
     
@@ -2955,7 +3061,8 @@ function cargarPaseAsistenciaCategoria() {
 }
 
 async function guardarAsistenciaCategoria() {
-    const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+    const isTodas = state.activeCategoriaId === 'todas';
+    const cat = isTodas ? { id: 'todas' } : state.categorias.find(c => c.id === state.activeCategoriaId);
     if (!cat) return;
     
     const dateInput = document.getElementById('asistencias-fecha-select');
@@ -2967,18 +3074,55 @@ async function guardarAsistenciaCategoria() {
     const weekStr = getWeekString(fechaObj);
     
     try {
-        // Guardamos todos los días registrados en el borrador de la semana
         const fechasBorrador = Object.keys(state.asistenciaDraft).filter(k => k !== '_weekStr' && k !== '_catId');
         
-        for (const f of fechasBorrador) {
-            const registros = state.asistenciaDraft[f] || {};
-            await window.db.guardarAsistencia({
-                fecha: f,
-                semana: weekStr,
-                categoriaId: cat.id,
-                sedeId: state.activeSedeId,
-                registros: registros
-            });
+        if (isTodas) {
+            // Si es "todas", agrupamos por la categoría correcta del alumno en base a su año de nacimiento
+            const catsSede = state.categorias.filter(c => c.sedeId === state.activeSedeId);
+            
+            for (const f of fechasBorrador) {
+                const registrosCompletos = state.asistenciaDraft[f] || {};
+                
+                // Agrupar registros por categoría
+                const registrosPorCat = {};
+                catsSede.forEach(c => {
+                    registrosPorCat[c.id] = {};
+                });
+                
+                Object.keys(registrosCompletos).forEach(aluId => {
+                    const alu = state.alumnos.find(a => a.id === aluId);
+                    if (alu && alu.fechaNacimiento) {
+                        const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
+                        const matchedCat = catsSede.find(c => anioNac >= c.anioInicio && anioNac <= c.anioFin);
+                        if (matchedCat) {
+                            registrosPorCat[matchedCat.id][aluId] = registrosCompletos[aluId];
+                        }
+                    }
+                });
+                
+                // Guardar cada categoría que tenga registros en la base de datos
+                for (const cId of Object.keys(registrosPorCat)) {
+                    await window.db.guardarAsistencia({
+                        fecha: f,
+                        semana: weekStr,
+                        categoriaId: cId,
+                        sedeId: state.activeSedeId,
+                        registros: registrosPorCat[cId]
+                    });
+                }
+            }
+        } else {
+            // Guardado tradicional de una sola categoría
+            for (const f of fechasBorrador) {
+                const registros = state.asistenciaDraft[f] || {};
+                await window.db.guardarAsistencia({
+                    fecha: f,
+                    semana: weekStr,
+                    categoriaId: cat.id,
+                    sedeId: state.activeSedeId,
+                    registros: registros
+                });
+            }
         }
         alert("Asistencias de la semana guardadas correctamente.");
     } catch (err) {
