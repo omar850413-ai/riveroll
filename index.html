@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v17') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v17', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v18') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v18', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -187,6 +187,9 @@
                 
                 <!-- Barra de Navegación Interna de Sede (Fútbol o Gym) -->
                 <div class="sub-tabs-container" style="margin-bottom: 2.5rem;">
+                    <button id="subtab-back-btn" class="sub-tab-btn" onclick="switchSedeView('miembros')" style="display: none; background: rgba(55, 65, 81, 0.6) !important; color: #fff !important; border-color: #4b5563 !important;">
+                        <i class="fa-solid fa-arrow-left"></i> Menú de Sede
+                    </button>
                     <button id="subtab-miembros-btn" class="sub-tab-btn active soccer" onclick="switchSedeView('miembros')">
                         <i class="fa-solid fa-users"></i> Miembros / Alumnos
                     </button>
@@ -403,7 +406,8 @@
 
                 <!-- Sub-Panel: Asistencias (Gym) (Pestaña 6 - Gym) -->
                 <div id="sub-panel-asistencias-gym" class="sede-sub-view" style="display: none;">
-                    <div class="glass-panel" style="padding: 1.5rem;">
+                    <div class="glass-panel" style="padding: 1.5rem;" id="asistencias-gym-container">
+                        <button class="btn btn-outline btn-sm" id="btn-volver-gym" onclick="volverAlMenuGym()" style="display: none; margin-bottom: 1.5rem; width: 100%; border-color: var(--color-accent); color: var(--color-accent); font-weight: bold;"><i class="fa-solid fa-arrow-left"></i> Volver al Menú de Sede</button>
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                             <div>
                                 <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin: 0;"><i class="fa-solid fa-calendar-check"></i> Registro General de Asistencias</h3>
@@ -1066,7 +1070,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=17"></script>
-    <script src="app.js?v=17"></script>
+    <script src="db.js?v=18"></script>
+    <script src="app.js?v=18"></script>
 </body>
 </html>

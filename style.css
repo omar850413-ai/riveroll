@@ -1013,3 +1013,27 @@ input:-webkit-autofill:active {
     transition: background-color 5000s ease-in-out 0s;
 }
 
+/* Modo Enfoque Asistencias */
+body.focus-attendance-mode .corp-header,
+body.focus-attendance-mode .sub-tabs-container,
+body.focus-attendance-mode .sede-header-card,
+body.focus-attendance-mode #categorias-sidebar-col,
+body.focus-attendance-mode #detalle-sede-nombre,
+body.focus-attendance-mode #detalle-sede-rubro-corte,
+body.focus-attendance-mode #detalle-sede-logo,
+body.focus-attendance-mode #detalle-sede-acciones {
+    display: none !important;
+}
+
+body.focus-attendance-mode #panel-detalle-sede {
+    padding-top: 0.5rem !important;
+}
+
+body.focus-attendance-mode #categorias-detalle-container,
+body.focus-attendance-mode #asistencias-gym-container {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+

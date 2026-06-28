@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '17.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '17.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '18.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '18.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -440,6 +440,31 @@ function switchSedeView(viewId) {
         if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
         if (btnCats) btnCats.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
         if (btnAsistGym) btnAsistGym.className = `sub-tab-btn ${esSoccer ? 'soccer' : 'gym'}`;
+        
+        const btnBack = document.getElementById('subtab-back-btn');
+        if (viewId === 'miembros' || viewId === 'miembros-btn') {
+            if (btnBack) btnBack.style.display = 'none';
+            if (btnMiembros) btnMiembros.style.display = 'inline-flex';
+            if (btnConta) btnConta.style.display = esSoccer ? 'inline-flex' : 'none';
+            if (btnTotales) btnTotales.style.display = 'inline-flex';
+            if (btnTrabajadores) btnTrabajadores.style.display = 'inline-flex';
+            if (btnCats) btnCats.style.display = esSoccer ? 'inline-flex' : 'none';
+            if (btnAsistGym) btnAsistGym.style.display = !esSoccer ? 'inline-flex' : 'none';
+        } else {
+            if (btnMiembros) btnMiembros.style.display = 'none';
+            if (btnConta) btnConta.style.display = 'none';
+            if (btnTotales) btnTotales.style.display = 'none';
+            if (btnTrabajadores) btnTrabajadores.style.display = 'none';
+            if (btnCats) btnCats.style.display = 'none';
+            if (btnAsistGym) btnAsistGym.style.display = 'none';
+            
+            if (btnBack) btnBack.style.display = 'inline-flex';
+            if (viewId === 'contabilidad' && btnConta) btnConta.style.display = 'inline-flex';
+            if (viewId === 'totales' && btnTotales) btnTotales.style.display = 'inline-flex';
+            if (viewId === 'trabajadores' && btnTrabajadores) btnTrabajadores.style.display = 'inline-flex';
+            if (viewId === 'categorias' && btnCats) btnCats.style.display = 'inline-flex';
+            if (viewId === 'asistencias-gym' && btnAsistGym) btnAsistGym.style.display = 'inline-flex';
+        }
         
         const pMiembros = document.getElementById('sub-panel-miembros');
         const pConta = document.getElementById('sub-panel-contabilidad');
@@ -2678,19 +2703,19 @@ function seleccionarCategoria(id) {
     state.activeCategoriaId = id;
     renderCategoriasSidebar();
     
+    // Activar modo enfoque (ocultar cabeceras y menús)
+    document.body.classList.add('focus-attendance-mode');
+    
     // Ajustar vista móvil/escritorio para pantalla completa
     const isMobile = window.innerWidth <= 768;
     if (isMobile) {
         document.getElementById('categorias-sidebar-col').style.display = 'none';
         document.getElementById('categorias-detalle-container').style.display = 'block';
         document.getElementById('btn-volver-categorias').style.display = 'block';
-        // Ocultar tabs de navegación interna para usar toda la pantalla
-        const subTabs = document.querySelector('.sub-tabs-container');
-        if (subTabs) subTabs.style.display = 'none';
     } else {
-        document.getElementById('categorias-sidebar-col').style.display = 'block';
+        document.getElementById('categorias-sidebar-col').style.display = 'none';
         document.getElementById('categorias-detalle-container').style.display = 'block';
-        document.getElementById('btn-volver-categorias').style.display = 'none';
+        document.getElementById('btn-volver-categorias').style.display = 'block';
     }
 
     document.getElementById('categorias-placeholder').style.display = 'none';
@@ -2711,6 +2736,9 @@ function seleccionarCategoria(id) {
 }
 
 function volverAListaCategorias() {
+    // Desactivar modo enfoque
+    document.body.classList.remove('focus-attendance-mode');
+    
     document.getElementById('categorias-sidebar-col').style.display = 'block';
     document.getElementById('categorias-detalle-container').style.display = 'none';
     document.getElementById('btn-volver-categorias').style.display = 'none';
@@ -2755,6 +2783,11 @@ function actualizarDiasGymDropdown() {
     const weekStr = weekSelect.value;
     if (!weekStr) return;
     
+    // Activar modo enfoque para el Gimnasio
+    document.body.classList.add('focus-attendance-mode');
+    const btnVolverGym = document.getElementById('btn-volver-gym');
+    if (btnVolverGym) btnVolverGym.style.display = 'block';
+    
     const weekDates = getDatesOfWeek(weekStr);
     const diaSelect = document.getElementById('asistencias-dia-select-gym');
     if (!diaSelect) return;
@@ -2771,6 +2804,13 @@ function actualizarDiasGymDropdown() {
     });
     
     cargarPaseAsistenciaGym();
+}
+
+function volverAlMenuGym() {
+    document.body.classList.remove('focus-attendance-mode');
+    const btnVolverGym = document.getElementById('btn-volver-gym');
+    if (btnVolverGym) btnVolverGym.style.display = 'none';
+    switchSedeView('miembros');
 }
 
 function toggleAsistenciaDraft(aluId, fechaDia, button) {
