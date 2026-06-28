@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '20.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '20.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '21.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '21.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -199,7 +199,7 @@ function suscribirColecciones() {
             // RESTAURAR ESTADO DE NAVEGACIÓN ANTE RECARGA ACCIDENTAL
             const savedSedeId = localStorage.getItem('riveroll_active_sede_id');
             if (savedSedeId && nuevasSedes.some(s => s.id === savedSedeId)) {
-                ejecutarIrADetalleSinPush(savedSedeId);
+                ejecutarIrADetalleSinPush(savedSedeId, true);
                 const savedSubView = localStorage.getItem('riveroll_active_sub_view');
                 if (savedSubView) {
                     switchSedeView(savedSubView);
@@ -358,14 +358,16 @@ function irADetalleSede(sedeId) {
     ejecutarIrADetalleSinPush(sedeId);
 }
 
-function ejecutarIrADetalleSinPush(sedeId) {
+function ejecutarIrADetalleSinPush(sedeId, isRestoring = false) {
     state.activeSedeId = sedeId;
-    state.activeSedeSubView = 'miembros';
     
-    // Guardar estado en localStorage
-    localStorage.setItem('riveroll_active_sede_id', sedeId);
-    localStorage.setItem('riveroll_active_sub_view', 'miembros');
-    localStorage.removeItem('riveroll_active_categoria_id');
+    if (!isRestoring) {
+        state.activeSedeSubView = 'miembros';
+        // Guardar estado en localStorage
+        localStorage.setItem('riveroll_active_sede_id', sedeId);
+        localStorage.setItem('riveroll_active_sub_view', 'miembros');
+        localStorage.removeItem('riveroll_active_categoria_id');
+    }
     
     const btnMiembros = document.getElementById('subtab-miembros-btn');
     const btnConta = document.getElementById('subtab-contabilidad-btn');
@@ -2670,19 +2672,22 @@ function openAddCategoriaModal() {
 async function guardarNuevaCategoria(event) {
     event.preventDefault();
     const nombre = document.getElementById('cat-nombre').value.trim();
-    const anioInicio = parseInt(document.getElementById('cat-anio-inicio').value, 10);
-    const anioFin = parseInt(document.getElementById('cat-anio-fin').value, 10);
+    
+    // Extraer los años de 4 dígitos del nombre automáticamente
+    const matches = nombre.match(/\b\d{4}\b/g);
+    if (!matches || matches.length === 0) {
+        alert("Escribe el año de nacimiento en el nombre de la categoría (ej: 2015 o 2015-2016) para que la app agrupe a los alumnos automáticamente.");
+        return;
+    }
+    const years = matches.map(y => parseInt(y, 10));
+    const anioInicio = Math.min(...years);
+    const anioFin = Math.max(...years);
     
     const checkboxes = document.querySelectorAll('input[name="cat-dias"]:checked');
     const dias = Array.from(checkboxes).map(cb => cb.value);
     
     if (dias.length === 0) {
         alert("Selecciona al menos un día de entrenamiento.");
-        return;
-    }
-    
-    if (anioInicio > anioFin) {
-        alert("El año inicial no puede ser mayor que el año final.");
         return;
     }
     
@@ -2722,11 +2727,12 @@ function renderCategoriasSidebar() {
         const isActive = state.activeCategoriaId === c.id;
         btn.className = `btn btn-full ${isActive ? 'active' : ''}`;
         
-        btn.style = `text-align: left; padding: 0.85rem 1.1rem; border: 1px solid ${isActive ? '#f97316' : '#ea580c'}; background: ${isActive ? 'linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important' : 'rgba(234, 88, 12, 0.08) !important'}; margin-bottom: 0.75rem; font-size: 0.95rem; display: flex; flex-direction: column; gap: 0.35rem; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
+        // Estilo de naranja tenue/suave
+        btn.style = `text-align: left; padding: 0.9rem 1.2rem; border: ${isActive ? '2px solid #f97316' : '1px solid rgba(249, 115, 22, 0.2)'}; background: ${isActive ? 'rgba(249, 115, 22, 0.25) !important' : 'rgba(249, 115, 22, 0.08) !important'}; margin-bottom: 0.75rem; font-size: 1.05rem; display: flex; flex-direction: column; gap: 0.35rem; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
         
         btn.innerHTML = `
-            <strong style="color: #fff; font-size: 1.05rem; font-weight: bold;">${c.nombre}</strong>
-            <span style="font-size: 0.75rem; color: ${isActive ? '#ffe4e6' : '#fdba74'}; font-weight: 500;"><i class="fa-solid fa-calendar"></i> RANGO: ${c.anioInicio}-${c.anioFin} (${c.diasEntrenamiento.join(', ')})</span>
+            <strong style="color: #fff; font-size: 1.1rem; font-weight: bold;">${c.nombre}</strong>
+            <span style="font-size: 0.78rem; color: ${isActive ? '#fff' : '#fdba74'}; font-weight: 500;"><i class="fa-solid fa-calendar"></i> RANGO: ${c.anioInicio}-${c.anioFin} (${c.diasEntrenamiento.join(', ')})</span>
         `;
         
         btn.onclick = () => seleccionarCategoria(c.id);

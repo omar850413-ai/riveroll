@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v20') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v20', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v21') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v21', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -336,7 +336,7 @@
                         <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;" id="categorias-sidebar-col">
                             <div style="display: flex; flex-direction: column; gap: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
                                 <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.25rem; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fa-solid fa-folder-tree"></i> Categorías</h4>
-                                <button class="btn btn-accent" onclick="openAddCategoriaModal()" style="width: 100%; padding: 0.75rem 1rem; font-size: 1rem; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important; border: none !important; color: #fff !important; font-weight: bold; border-radius: 12px; box-shadow: 0 4px 12px rgba(249,115,22,0.25); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <button class="btn btn-accent" onclick="openAddCategoriaModal()" style="width: 100%; padding: 0.75rem 1rem; font-size: 1rem; background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%) !important; border: none !important; color: #000 !important; font-weight: bold; border-radius: 12px; box-shadow: 0 4px 12px rgba(205,162,80,0.25); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                     <i class="fa-solid fa-folder-plus"></i> Crear Nueva Categoría
                                 </button>
                             </div>
@@ -998,17 +998,7 @@
                     <label for="cat-nombre"><i class="fa-solid fa-tag"></i> Nombre de la Categoría</label>
                     <input type="text" id="cat-nombre" class="form-control" required placeholder="Ej: Categoría 2015-2016 o Sub-12">
                 </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                        <label for="cat-anio-inicio"><i class="fa-solid fa-calendar"></i> Año Inicial</label>
-                        <input type="number" id="cat-anio-inicio" class="form-control" required placeholder="Ej: 2015" min="1990" max="2030">
-                    </div>
-                    <div class="form-group">
-                        <label for="cat-anio-fin"><i class="fa-solid fa-calendar"></i> Año Final</label>
-                        <input type="number" id="cat-anio-fin" class="form-control" required placeholder="Ej: 2016" min="1990" max="2030">
-                    </div>
-                </div>
+
                 
                 <div class="form-group">
                     <label><i class="fa-solid fa-calendar-days"></i> Días de Entrenamiento</label>
@@ -1043,7 +1033,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=20"></script>
-    <script src="app.js?v=20"></script>
+    <script src="db.js?v=21"></script>
+    <script src="app.js?v=21"></script>
 </body>
 </html>
