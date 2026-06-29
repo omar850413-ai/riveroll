@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v25') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v25', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v26') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v26', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -364,6 +364,9 @@
                                         <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('soccer')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
                                             <i class="fa-solid fa-file-pdf"></i> Reporte PDF
                                         </button>
+                                        <button class="btn btn-outline btn-sm" id="btn-editar-categoria-selected" onclick="openEditCategoriaModal()" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
+                                            <i class="fa-solid fa-pen-to-square"></i> Editar
+                                        </button>
                                         <button class="btn btn-danger btn-sm" id="btn-eliminar-categoria-selected" onclick="eliminarCategoriaSeleccionada()" style="background: rgba(239, 68, 68, 0.1); color: var(--color-danger); border: 1px solid var(--color-danger);">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
@@ -612,7 +615,9 @@
                     </div>
                     <div class="form-group">
                         <label for="alumno-categoria"><i class="fa-solid fa-graduation-cap"></i> Categoría Asignada</label>
-                        <input type="text" id="alumno-categoria" class="form-control" readonly style="background: rgba(255,255,255,0.01); color: var(--color-accent); font-weight: 700;">
+                        <select id="alumno-categoria" class="form-control" style="background: rgba(17,24,39,0.8); color: var(--color-accent); font-weight: 700;">
+                            <option value="auto">AUTOMÁTICA (SEGÚN EDAD)</option>
+                        </select>
                     </div>
                 </div>
                 
@@ -1008,10 +1013,11 @@
     <div id="modal-categoria" class="modal-overlay" style="z-index: 100;">
         <div class="modal-container" style="max-width: 480px;">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-folder-plus"></i> Crear Nueva Categoría</h3>
+                <h3 id="modal-categoria-title"><i class="fa-solid fa-folder-plus"></i> Crear Nueva Categoría</h3>
                 <button type="button" class="modal-close" onclick="closeModal('modal-categoria')">&times;</button>
             </div>
             <form id="form-categoria" onsubmit="guardarNuevaCategoria(event)">
+                <input type="hidden" id="edit-categoria-id">
                 <div class="form-group">
                     <label for="cat-nombre"><i class="fa-solid fa-tag"></i> Nombre de la Categoría</label>
                     <input type="text" id="cat-nombre" class="form-control" required placeholder="Ej: Categoría 2015-2016 o Sub-12">
@@ -1051,7 +1057,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=25"></script>
-    <script src="app.js?v=25"></script>
+    <script src="db.js?v=26"></script>
+    <script src="app.js?v=26"></script>
 </body>
 </html>

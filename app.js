@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '25.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '25.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '26.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '26.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -1081,7 +1081,19 @@ async function saveAlumno(event) {
     const id = document.getElementById('edit-alumno-id').value;
     const nombre = document.getElementById('alumno-nombre').value;
     const fechaNacimiento = document.getElementById('alumno-nacimiento').value;
-    const categoria = document.getElementById('alumno-categoria').value;
+    const categoriaId = document.getElementById('alumno-categoria').value;
+    let categoria = '';
+    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (Sede && Sede.rubro === 'gym') {
+        categoria = 'Adulto / Gym';
+    } else {
+        if (categoriaId === 'auto') {
+            categoria = fechaNacimiento ? fechaNacimiento.split('-')[0] : '';
+        } else {
+            const cat = state.categorias.find(c => c.id === categoriaId);
+            categoria = cat ? cat.nombre : '';
+        }
+    }
     const tutorNombre = document.getElementById('alumno-tutor').value;
     const tutorTelefono = document.getElementById('alumno-telefono').value;
     const camiseta = document.getElementById('alumno-camiseta') ? document.getElementById('alumno-camiseta').value : '';
@@ -1109,6 +1121,7 @@ async function saveAlumno(event) {
         sedeId: state.activeSedeId,
         fechaNacimiento,
         categoria,
+        categoriaId,
         tutorNombre,
         tutorTelefono,
         rama,
@@ -1327,10 +1340,35 @@ function toggleRubroOtro() {
     }
 }
 
+function popularCategoriaSelect(currentVal = 'auto') {
+    const select = document.getElementById('alumno-categoria');
+    if (!select) return;
+    
+    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (Sede && Sede.rubro === 'gym') {
+        select.innerHTML = '<option value="auto">Adulto / Gym</option>';
+        select.value = 'auto';
+        return;
+    }
+    
+    const cats = state.categorias.filter(c => c.sedeId === state.activeSedeId);
+    select.innerHTML = '<option value="auto">AUTOMÁTICA (SEGÚN EDAD)</option>';
+    cats.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.innerText = c.nombre.toUpperCase();
+        select.appendChild(opt);
+    });
+    
+    select.value = currentVal || 'auto';
+}
+
 function openAddAlumnoModal() {
     const Sede = state.sedes.find(s => s.id === state.activeSedeId);
     if (!Sede) return;
     const esSoccer = Sede.rubro === 'soccer';
+    
+    popularCategoriaSelect('auto');
     
     document.getElementById('modal-alumno-title').innerText = esSoccer ? "Agregar Alumno (Fútbol)" : "Agregar Suscriptor (Gym)";
     document.getElementById('edit-alumno-id').value = "";
@@ -1372,11 +1410,12 @@ function openEditAlumnoModal(id) {
     const Sede = state.sedes.find(s => s.id === state.activeSedeId);
     const esSoccer = Sede ? Sede.rubro === 'soccer' : true;
     
+    popularCategoriaSelect(alumno.categoriaId || 'auto');
+    
     document.getElementById('modal-alumno-title').innerText = esSoccer ? "Editar Alumno (Fútbol)" : "Editar Suscriptor (Gym)";
     document.getElementById('edit-alumno-id').value = alumno.id;
     document.getElementById('alumno-nombre').value = alumno.nombre;
     document.getElementById('alumno-nacimiento').value = alumno.fechaNacimiento;
-    document.getElementById('alumno-categoria').value = alumno.categoria;
     document.getElementById('alumno-tutor').value = alumno.tutorNombre;
     document.getElementById('alumno-telefono').value = alumno.tutorTelefono;
     
@@ -1433,7 +1472,10 @@ function handleSedeChangeEnFormulario() {
         if (nacInput) {
             nacInput.required = false;
         }
-        if (catInput) catInput.value = 'Adulto / Gym';
+        if (catInput) {
+            catInput.innerHTML = '<option value="auto">Adulto / Gym</option>';
+            catInput.value = 'auto';
+        }
     } else {
         if (nacInput) {
             nacInput.required = true;
@@ -1443,19 +1485,10 @@ function handleSedeChangeEnFormulario() {
 }
 
 function calcularCategoriaAuto() {
-    const fechaInput = document.getElementById('alumno-nacimiento');
-    if (!fechaInput) return;
-    const fecha = fechaInput.value;
-    const Sede = state.sedes.find(s => s.id === state.activeSedeId);
-    
-    if (Sede && Sede.rubro === 'gym') {
-        document.getElementById('alumno-categoria').value = 'Adulto / Gym';
-        return;
+    const select = document.getElementById('alumno-categoria');
+    if (select) {
+        select.value = 'auto';
     }
-    
-    if (!fecha) return;
-    const anio = fecha.split('-')[0];
-    document.getElementById('alumno-categoria').value = anio;
 }
 
 function actualizarSelectoresFiltros() {
@@ -1759,6 +1792,8 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
         const weekDates = getDatesOfWeek(weekStr);
         const alumnosCat = state.alumnos.filter(alu => {
             if (alu.sedeId !== state.activeSedeId) return false;
+            if (alu.categoriaId === cat.id) return true;
+            if (alu.categoriaId && alu.categoriaId !== 'auto') return false;
             if (!alu.fechaNacimiento) return false;
             const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
             return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;
@@ -2692,11 +2727,32 @@ function getDatesOfWeek(weekStr) {
 
 // --- CATEGORÍAS (FÚTBOL) ---
 function openAddCategoriaModal() {
+    document.getElementById('edit-categoria-id').value = "";
+    document.getElementById('modal-categoria-title').innerHTML = '<i class="fa-solid fa-folder-plus"></i> Crear Nueva Categoría';
+    document.getElementById('form-categoria').reset();
+    document.getElementById('modal-categoria').classList.add('active');
+}
+
+function openEditCategoriaModal() {
+    const cat = state.categorias.find(c => c.id === state.activeCategoriaId);
+    if (!cat) return;
+    
+    document.getElementById('edit-categoria-id').value = cat.id;
+    document.getElementById('modal-categoria-title').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Editar Categoría';
+    document.getElementById('cat-nombre').value = cat.nombre;
+    
+    // Marcar checkboxes correspondientes
+    const checkboxes = document.querySelectorAll('input[name="cat-dias"]');
+    checkboxes.forEach(cb => {
+        cb.checked = cat.diasEntrenamiento.includes(cb.value);
+    });
+    
     document.getElementById('modal-categoria').classList.add('active');
 }
 
 async function guardarNuevaCategoria(event) {
     event.preventDefault();
+    const id = document.getElementById('edit-categoria-id').value;
     const nombre = document.getElementById('cat-nombre').value.trim();
     
     // Extraer los años de 4 dígitos del nombre automáticamente
@@ -2717,7 +2773,7 @@ async function guardarNuevaCategoria(event) {
         return;
     }
     
-    const nueva = {
+    const datos = {
         nombre,
         anioInicio,
         anioFin,
@@ -2726,12 +2782,23 @@ async function guardarNuevaCategoria(event) {
     };
     
     try {
-        await window.db.agregarCategoria(nueva);
-        alert("Categoría creada con éxito.");
+        if (id) {
+            await window.db.actualizarCategoria(id, datos);
+            alert("Categoría actualizada con éxito.");
+            
+            // Actualizar la cabecera detalle si era la categoría activa
+            if (state.activeCategoriaId === id) {
+                document.getElementById('cat-detalle-nombre').innerText = nombre.toUpperCase();
+                document.getElementById('cat-detalle-meta').innerText = `RANGO DE EDAD: ${anioInicio} - ${anioFin} | ENTRENAMIENTOS: ${dias.join(', ')}`;
+            }
+        } else {
+            await window.db.agregarCategoria(datos);
+            alert("Categoría creada con éxito.");
+        }
         closeModal('modal-categoria');
         document.getElementById('form-categoria').reset();
     } catch (err) {
-        console.error("Error al crear categoría:", err);
+        console.error("Error al guardar categoría:", err);
     }
 }
 
@@ -3040,6 +3107,8 @@ function cargarPaseAsistenciaCategoria() {
         if (c) {
             alumnosCat = state.alumnos.filter(alu => {
                 if (alu.sedeId !== state.activeSedeId) return false;
+                if (alu.categoriaId === c.id) return true;
+                if (alu.categoriaId && alu.categoriaId !== 'auto') return false;
                 if (!alu.fechaNacimiento) return false;
                 const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
                 return anioNac >= c.anioInicio && anioNac <= c.anioFin;
@@ -3108,10 +3177,15 @@ async function guardarAsistenciaCategoria() {
                 
                 Object.keys(registrosCompletos).forEach(aluId => {
                     const alu = state.alumnos.find(a => a.id === aluId);
-                    if (alu && alu.fechaNacimiento) {
-                        const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
-                        const matchedCat = catsSede.find(c => anioNac >= c.anioInicio && anioNac <= c.anioFin);
-                        if (matchedCat) {
+                    if (alu) {
+                        let matchedCat = null;
+                        if (alu.categoriaId && alu.categoriaId !== 'auto') {
+                            matchedCat = catsSede.find(c => c.id === alu.categoriaId);
+                        } else if (alu.fechaNacimiento) {
+                            const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
+                            matchedCat = catsSede.find(c => anioNac >= c.anioInicio && anioNac <= c.anioFin);
+                        }
+                        if (matchedCat && registrosPorCat[matchedCat.id]) {
                             registrosPorCat[matchedCat.id][aluId] = registrosCompletos[aluId];
                         }
                     }
@@ -3305,6 +3379,8 @@ function descargarAsistenciasPDF(tipo) {
         
         alumnos = state.alumnos.filter(alu => {
             if (alu.sedeId !== state.activeSedeId) return false;
+            if (alu.categoriaId === cat.id) return true;
+            if (alu.categoriaId && alu.categoriaId !== 'auto') return false;
             if (!alu.fechaNacimiento) return false;
             const anioNac = parseInt(alu.fechaNacimiento.split('-')[0], 10);
             return anioNac >= cat.anioInicio && anioNac <= cat.anioFin;

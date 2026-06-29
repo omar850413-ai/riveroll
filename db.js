@@ -534,6 +534,25 @@ const dbAdapter = {
         }
     },
 
+    async actualizarCategoria(id, categoria) {
+        if (dbCurrentUser) {
+            categoria.userId = dbCurrentUser.uid;
+        }
+        if (useFirebase && firestoreDb) {
+            const temp = { ...categoria };
+            delete temp.id;
+            await firestoreDb.collection('categorias').doc(id).update(temp);
+        } else {
+            const categorias = this.getCategoriasLocal();
+            const idx = categorias.findIndex(c => c.id === id);
+            if (idx !== -1) {
+                categorias[idx] = { ...categorias[idx], ...categoria, id };
+                this.saveCategoriasLocal(categorias);
+                notificarCambio('categorias', categorias);
+            }
+        }
+    },
+
     // 8. ASISTENCIAS (REGISTROS DIARIOS/SEMANALES)
     async guardarAsistencia(asistencia) {
         if (dbCurrentUser) {
