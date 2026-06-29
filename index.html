@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v26') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v26', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v27') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v27', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -402,40 +402,61 @@
 
                 <!-- Sub-Panel: Asistencias (Gym) (Pestaña 6 - Gym) -->
                 <div id="sub-panel-asistencias-gym" class="sede-sub-view" style="display: none;">
-                    <div class="glass-panel" style="padding: 1.5rem;" id="asistencias-gym-container">
-                        <button class="btn btn-outline btn-sm" id="btn-volver-gym" onclick="volverAlMenuGym()" style="display: none; margin-bottom: 1.5rem; width: 100%; border-color: var(--color-accent); color: var(--color-accent); font-weight: bold;"><i class="fa-solid fa-arrow-left"></i> Volver al Menú de Sede</button>
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                            <div>
-                                <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin: 0;"><i class="fa-solid fa-calendar-check"></i> Registro General de Asistencias</h3>
-                                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0.25rem 0 0 0; text-transform: uppercase;">Pase de lista para todos los suscriptores activos del gimnasio</p>
+                    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: flex-start;" id="gym-asistencias-layout-grid">
+                        <!-- Columna Izquierda: Horarios -->
+                        <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;" id="gym-horarios-sidebar-col">
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                                <h4 style="color: #fff; font-family: var(--font-title); font-size: 1.25rem; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fa-solid fa-clock"></i> Horarios</h4>
                             </div>
-                            <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('gym')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
-                                <i class="fa-solid fa-file-pdf"></i> Reporte PDF
-                            </button>
-                        </div>
-
-                        <!-- Selector de Fecha con Calendario para Gym -->
-                        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; width: 100%;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
-                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-calendar-day"></i> Fecha:</label>
-                                <input type="date" id="asistencias-fecha-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()">
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
-                                <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-clock"></i> Horario:</label>
-                                <select id="asistencias-horario-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()">
-                                    <option value="">TODOS LOS HORARIOS</option>
-                                </select>
+                            <div id="gym-horarios-lista-sidebar" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+                                <!-- Dinámico -->
                             </div>
                         </div>
 
-                        <!-- Contenedor Responsivo del Listado de Integrantes Gym (Sin scroll horizontal) -->
-                        <div id="lista-asistencia-tarjetas-gym" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; width: 100%;">
-                            <!-- Dinámico -->
-                        </div>
+                        <!-- Columna Derecha: Detalle y Asistencia -->
+                        <div class="glass-panel" style="padding: 1.5rem;" id="gym-asistencias-detalle-container">
+                            <button class="btn btn-outline btn-sm" id="btn-volver-gym-horarios" onclick="volverAListaHorariosGym()" style="display: none; margin-bottom: 1rem; width: 100%; border-color: var(--color-accent); color: var(--color-accent); font-weight: bold;"><i class="fa-solid fa-arrow-left"></i> Volver a Lista de Horarios</button>
+                            
+                            <div style="text-align: center; padding: 3rem 1.5rem; color: var(--color-text-muted);" id="gym-horarios-placeholder">
+                                <i class="fa-solid fa-clock" style="font-size: 3rem; margin-bottom: 1rem; color: var(--color-accent); opacity: 0.6;"></i>
+                                <p style="font-size: 0.95rem; margin: 0;">SELECCIONA UN HORARIO PARA EMPEZAR EL PASE DE ASISTENCIA</p>
+                            </div>
+                            
+                            <div id="gym-horario-detalle-contenido" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                                    <div>
+                                        <h3 id="gym-horario-detalle-nombre" style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin: 0;"></h3>
+                                        <p id="gym-horario-detalle-meta" style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0.25rem 0 0 0; text-transform: uppercase;">Pase de lista para este horario</p>
+                                    </div>
+                                    <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('gym')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
+                                        <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+                                    </button>
+                                </div>
 
-                        <button class="btn btn-primary" onclick="guardarAsistenciaGym()" style="width: 100%; font-weight: bold; background: var(--color-accent); color: #000;">
-                            <i class="fa-solid fa-floppy-disk"></i> Guardar Asistencias del Gimnasio
-                        </button>
+                                <!-- Selector de Fecha con Calendario para Gym -->
+                                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; width: 100%;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                        <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-calendar-day"></i> Fecha:</label>
+                                        <input type="date" id="asistencias-fecha-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="cargarPaseAsistenciaGym()">
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                                        <label style="font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-clock"></i> Horario:</label>
+                                        <select id="asistencias-horario-select-gym" class="form-control" style="padding: 0.4rem 0.8rem; margin: 0; width: 100%;" onchange="seleccionarHorarioDesdeFiltroGym()">
+                                            <option value="todas">TODOS LOS HORARIOS</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Contenedor Responsivo del Listado de Integrantes Gym (Sin scroll horizontal) -->
+                                <div id="lista-asistencia-tarjetas-gym" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; width: 100%;">
+                                    <!-- Dinámico -->
+                                </div>
+
+                                <button class="btn btn-primary" onclick="guardarAsistenciaGym()" style="width: 100%; font-weight: bold; background: var(--color-accent); color: #000;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Guardar Asistencias del Gimnasio
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1057,7 +1078,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=26"></script>
-    <script src="app.js?v=26"></script>
+    <script src="db.js?v=27"></script>
+    <script src="app.js?v=27"></script>
 </body>
 </html>

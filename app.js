@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '26.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '26.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '27.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '27.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -206,7 +206,8 @@ function suscribirColecciones() {
                 if (state.activeSedeSubView === 'categorias' && state.activeCategoriaId) {
                     cargarPaseAsistenciaCategoria();
                 } else if (state.activeSedeSubView === 'asistencias-gym') {
-                    cargarPaseAsistenciaGym();
+                    renderHorariosSidebarGym();
+                    if (state.activeHorarioGym) cargarPaseAsistenciaGym();
                 }
             }
         });
@@ -285,6 +286,11 @@ function intentarRestaurarNavegacion() {
         switchSedeView(savedSubView);
         if (savedSubView === 'categorias' && savedCatId) {
             seleccionarCategoria(savedCatId);
+        } else if (savedSubView === 'asistencias-gym') {
+            const savedHorario = localStorage.getItem('riveroll_active_horario_gym');
+            if (savedHorario) {
+                seleccionarHorarioGym(savedHorario);
+            }
         }
     }
 }
@@ -382,6 +388,7 @@ function ejecutarIrADetalleSinPush(sedeId, isRestoring = false) {
         localStorage.setItem('riveroll_active_sede_id', sedeId);
         localStorage.setItem('riveroll_active_sub_view', 'miembros');
         localStorage.removeItem('riveroll_active_categoria_id');
+        localStorage.removeItem('riveroll_active_horario_gym');
         restorationAttempted = false;
     }
     
@@ -435,6 +442,7 @@ function ejecutarVolverAlDashboardSinPush() {
     localStorage.removeItem('riveroll_active_sede_id');
     localStorage.removeItem('riveroll_active_sub_view');
     localStorage.removeItem('riveroll_active_categoria_id');
+    localStorage.removeItem('riveroll_active_horario_gym');
     document.body.classList.remove('focus-attendance-mode');
     restorationAttempted = false;
     
@@ -567,16 +575,29 @@ function switchSedeView(viewId) {
             if (btnAsistGym) btnAsistGym.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
             if (pAsistGym) pAsistGym.style.display = 'block';
             
-            // Forzar fecha actual y activar modo enfoque
-            document.body.classList.add('focus-attendance-mode');
-            const btnVolverGym = document.getElementById('btn-volver-gym');
-            if (btnVolverGym) btnVolverGym.style.display = 'block';
+            // Ajustar vista inicial móvil/escritorio
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                document.getElementById('gym-horarios-sidebar-col').style.display = 'block';
+                document.getElementById('gym-asistencias-detalle-container').style.display = 'none';
+                document.getElementById('btn-volver-gym-horarios').style.display = 'none';
+                const subTabs = document.querySelector('.sub-tabs-container');
+                if (subTabs) subTabs.style.display = 'flex';
+            } else {
+                document.getElementById('gym-horarios-sidebar-col').style.display = 'block';
+                document.getElementById('gym-asistencias-detalle-container').style.display = 'block';
+                document.getElementById('btn-volver-gym-horarios').style.display = 'none';
+            }
+            
+            document.getElementById('gym-horarios-placeholder').style.display = 'block';
+            document.getElementById('gym-horario-detalle-contenido').style.display = 'none';
             
             const dateInput = document.getElementById('asistencias-fecha-select-gym');
             if (dateInput && !dateInput.value) {
                 dateInput.value = obtenerFechaActualStr();
             }
-            cargarPaseAsistenciaGym();
+            
+            renderHorariosSidebarGym();
         }
     } catch (e) {
         alert("ERROR en switchSedeView: " + e.message + "\nStack: " + e.stack);
@@ -1876,8 +1897,20 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
         const fechaSeleccionada = dateInput ? dateInput.value || obtenerFechaActualStr() : obtenerFechaActualStr();
         const weekStr = getWeekString(new Date(fechaSeleccionada + 'T00:00:00'));
         const weekDates = getDatesOfWeek(weekStr);
-        const alumnosGym = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
-        const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
+        const horarioFiltrado = state.activeHorarioGym || 'todas';
+        const isTodas = horarioFiltrado === 'todas';
+        const alumnosGym = state.alumnos.filter(alu => {
+            if (alu.sedeId !== state.activeSedeId) return false;
+            if (isTodas) return true;
+            return (alu.horario || 'SIN HORARIO').trim().toUpperCase() === horarioFiltrado;
+        });
+        let asistenciasSemana = [];
+        if (isTodas) {
+            asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId.startsWith('gym'));
+        } else {
+            const targetCatId = getGymCategoryId(horarioFiltrado);
+            asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === targetCatId);
+        }
         const diasEntrenamiento = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
         let diasHeaders = '';
@@ -1896,8 +1929,13 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
                 let faltasSemanales = 0;
                 diasEntrenamiento.forEach(dia => {
                     const fechaDia = weekDates[dia];
-                    const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
-                    const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
+                    const registrosDia = {};
+                    asistenciasSemana.filter(a => a.fecha === fechaDia).forEach(a => {
+                        if (a.registros) {
+                            Object.assign(registrosDia, a.registros);
+                        }
+                    });
+                    const estado = registrosDia[alu.id] || 'falta';
                     if (estado === 'asistencia') {
                         asistColumnas += `<td style="padding: 0.5rem; border-bottom: 1px solid #eee; text-align: center; color: #10b981; font-weight: bold; font-size: 0.85rem;">SI</td>`;
                     } else {
@@ -1926,7 +1964,7 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
                 <div>
                     <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
-                    <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Registro General de Asistencias - Gimnasio</p>
+                    <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Asistencias del Gimnasio - Horario: ${isTodas ? 'TODOS LOS HORARIOS' : horarioFiltrado}</p>
                     <p style="margin: 0.25rem 0 0 0; color: #1e3b8a; font-size: 0.85rem; font-weight: bold; text-transform: uppercase;">ASISTENCIAS DE LA SEMANA: ${rangeText}</p>
                 </div>
                 <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
@@ -2938,6 +2976,105 @@ function volverAListaCategorias() {
     renderCategoriasSidebar();
 }
 
+function renderHorariosSidebarGym() {
+    const sidebar = document.getElementById('gym-horarios-lista-sidebar');
+    if (!sidebar) return;
+    sidebar.innerHTML = "";
+    
+    // Todos los horarios
+    const btnTodas = document.createElement('button');
+    btnTodas.type = "button";
+    const isTodasActive = state.activeHorarioGym === 'todas';
+    btnTodas.className = `btn btn-full ${isTodasActive ? 'active' : ''}`;
+    btnTodas.style = `text-align: left; padding: 0.9rem 1.2rem; border: ${isTodasActive ? '2px solid #f97316' : '1px solid var(--border-color)'}; background: ${isTodasActive ? 'rgba(249, 115, 22, 0.25) !important' : 'rgba(255, 255, 255, 0.03) !important'}; margin-bottom: 0.75rem; font-size: 1.05rem; display: flex; flex-direction: column; gap: 0.25rem; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
+    btnTodas.innerHTML = `
+        <strong style="color: #fff; font-size: 1.1rem; font-weight: bold;"><i class="fa-solid fa-clock"></i> Todos los Horarios</strong>
+        <span style="font-size: 0.78rem; color: ${isTodasActive ? '#fff' : 'var(--color-text-muted)'}; font-weight: 500;">Lista general del Gimnasio</span>
+    `;
+    btnTodas.onclick = () => seleccionarHorarioGym('todas');
+    sidebar.appendChild(btnTodas);
+    
+    // Obtener los horarios de los alumnos de esta Sede
+    const horarios = [...new Set(state.alumnos
+        .filter(alu => alu.sedeId === state.activeSedeId && alu.horario)
+        .map(alu => alu.horario.trim()))]
+        .sort();
+        
+    horarios.forEach(h => {
+        const hKey = h.toUpperCase();
+        const btn = document.createElement('button');
+        btn.type = "button";
+        const isActive = state.activeHorarioGym === hKey;
+        btn.className = `btn btn-full ${isActive ? 'active' : ''}`;
+        btn.style = `text-align: left; padding: 0.9rem 1.2rem; border: ${isActive ? '2px solid #f97316' : '1px solid rgba(249, 115, 22, 0.2)'}; background: ${isActive ? 'rgba(249, 115, 22, 0.25) !important' : 'rgba(249, 115, 22, 0.08) !important'}; margin-bottom: 0.75rem; font-size: 1.05rem; display: flex; flex-direction: column; gap: 0.35rem; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);`;
+        
+        btn.innerHTML = `
+            <strong style="color: #fff; font-size: 1.1rem; font-weight: bold;">${h}</strong>
+            <span style="font-size: 0.78rem; color: ${isActive ? '#fff' : '#fdba74'}; font-weight: 500;"><i class="fa-solid fa-users"></i> Grupo de Entrenamiento</span>
+        `;
+        
+        btn.onclick = () => seleccionarHorarioGym(hKey);
+        sidebar.appendChild(btn);
+    });
+}
+
+function seleccionarHorarioGym(id) {
+    const cleanId = id.trim().toUpperCase();
+    state.activeHorarioGym = cleanId;
+    localStorage.setItem('riveroll_active_horario_gym', cleanId);
+    renderHorariosSidebarGym();
+    
+    // Activar modo enfoque
+    document.body.classList.add('focus-attendance-mode');
+    
+    // Ajustar vista móvil/escritorio
+    document.getElementById('gym-horarios-sidebar-col').style.display = 'none';
+    document.getElementById('gym-asistencias-detalle-container').style.display = 'block';
+    document.getElementById('btn-volver-gym-horarios').style.display = 'block';
+    
+    // Ocultar tabs globales en móvil
+    const subTabs = document.querySelector('.sub-tabs-container');
+    if (subTabs && window.innerWidth <= 768) subTabs.style.display = 'none';
+
+    document.getElementById('gym-horarios-placeholder').style.display = 'none';
+    document.getElementById('gym-horario-detalle-contenido').style.display = 'block';
+    
+    const isTodas = cleanId === 'todas';
+    document.getElementById('gym-horario-detalle-nombre').innerText = isTodas ? "TODOS LOS HORARIOS" : cleanId;
+    
+    // Sincronizar select
+    const select = document.getElementById('asistencias-horario-select-gym');
+    if (select) select.value = cleanId;
+    
+    const dateInput = document.getElementById('asistencias-fecha-select-gym');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = obtenerFechaActualStr();
+    }
+    
+    cargarPaseAsistenciaGym();
+}
+
+function seleccionarHorarioDesdeFiltroGym() {
+    const select = document.getElementById('asistencias-horario-select-gym');
+    if (!select) return;
+    seleccionarHorarioGym(select.value);
+}
+
+function volverAListaHorariosGym() {
+    document.body.classList.remove('focus-attendance-mode');
+    localStorage.removeItem('riveroll_active_horario_gym');
+    
+    document.getElementById('gym-horarios-sidebar-col').style.display = 'block';
+    document.getElementById('gym-asistencias-detalle-container').style.display = 'none';
+    document.getElementById('btn-volver-gym-horarios').style.display = 'none';
+    
+    const subTabs = document.querySelector('.sub-tabs-container');
+    if (subTabs) subTabs.style.display = 'flex';
+    
+    state.activeHorarioGym = null;
+    renderHorariosSidebarGym();
+}
+
 function volverAlMenuGym() {
     document.body.classList.remove('focus-attendance-mode');
     const btnVolverGym = document.getElementById('btn-volver-gym');
@@ -3223,6 +3360,11 @@ async function guardarAsistenciaCategoria() {
 }
 
 // --- PASE DE ASISTENCIA (GIMNASIO) ---
+function getGymCategoryId(horario) {
+    const clean = (horario || 'sin-horario').trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
+    return `gym_${clean}`;
+}
+
 function cargarPaseAsistenciaGym() {
     const container = document.getElementById('lista-asistencia-tarjetas-gym');
     if (!container) return;
@@ -3241,31 +3383,31 @@ function cargarPaseAsistenciaGym() {
     // 1. Obtener todos los horarios únicos de los suscriptores activos para llenar el selector
     const selectHorario = document.getElementById('asistencias-horario-select-gym');
     if (selectHorario) {
-        const valorActual = selectHorario.value;
-        const horariosUnicos = [...new Set(suscriptores.map(a => a.horario || '').filter(h => h.trim() !== ''))];
+        const valorActual = selectHorario.value || 'todas';
+        const horariosUnicos = [...new Set(suscriptores.map(a => a.horario || 'SIN HORARIO').map(h => h.trim().toUpperCase()))];
         
         // Solo regenerar si las opciones han cambiado
-        const currentOptions = Array.from(selectHorario.options).map(o => o.value).filter(v => v !== '');
+        const currentOptions = Array.from(selectHorario.options).map(o => o.value).filter(v => v !== 'todas');
         const changed = currentOptions.length !== horariosUnicos.length || !horariosUnicos.every(h => currentOptions.includes(h));
         
         if (changed) {
-            selectHorario.innerHTML = '<option value="">TODOS LOS HORARIOS</option>';
+            selectHorario.innerHTML = '<option value="todas">TODOS LOS HORARIOS</option>';
             horariosUnicos.sort().forEach(h => {
                 const opt = document.createElement('option');
                 opt.value = h;
-                opt.innerText = h.toUpperCase();
+                opt.innerText = h;
                 selectHorario.appendChild(opt);
             });
-            if (horariosUnicos.includes(valorActual)) {
-                selectHorario.value = valorActual;
-            }
         }
+        selectHorario.value = state.activeHorarioGym || 'todas';
     }
 
-    const horarioFiltrado = selectHorario ? selectHorario.value : '';
-    const suscriptoresFiltrados = horarioFiltrado 
-        ? suscriptores.filter(alu => (alu.horario || '').toLowerCase() === horarioFiltrado.toLowerCase())
-        : suscriptores;
+    const horarioFiltrado = state.activeHorarioGym || 'todas';
+    const isTodas = horarioFiltrado === 'todas';
+    
+    const suscriptoresFiltrados = isTodas 
+        ? suscriptores
+        : suscriptores.filter(alu => (alu.horario || 'SIN HORARIO').trim().toUpperCase() === horarioFiltrado);
 
     container.innerHTML = "";
     
@@ -3276,23 +3418,45 @@ function cargarPaseAsistenciaGym() {
     
     const diasGym = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
     
-    if (!state.asistenciaDraftGym || state.asistenciaDraftGym._weekStr !== weekStr) {
+    // Inicializar el borrador semanal si cambió de semana o horario
+    if (!state.asistenciaDraftGym || state.asistenciaDraftGym._weekStr !== weekStr || state.asistenciaDraftGym._horarioId !== horarioFiltrado) {
         state.asistenciaDraftGym = {
-            _weekStr: weekStr
+            _weekStr: weekStr,
+            _horarioId: horarioFiltrado
         };
-        const asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
+        
         diasGym.forEach(dia => {
             const fDia = weekDates[dia];
             state.asistenciaDraftGym[fDia] = {};
-            const dbDiaEntry = asistenciasSemana.find(a => a.fecha === fDia);
-            if (dbDiaEntry && dbDiaEntry.registros) {
-                state.asistenciaDraftGym[fDia] = { ...dbDiaEntry.registros };
+        });
+        
+        let asistenciasSemana = [];
+        if (isTodas) {
+            asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId.startsWith('gym'));
+        } else {
+            const targetCatId = getGymCategoryId(horarioFiltrado);
+            asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === targetCatId);
+        }
+        
+        asistenciasSemana.forEach(dbDiaEntry => {
+            const fDia = dbDiaEntry.fecha;
+            if (!state.asistenciaDraftGym[fDia]) state.asistenciaDraftGym[fDia] = {};
+            if (dbDiaEntry.registros) {
+                state.asistenciaDraftGym[fDia] = { ...state.asistenciaDraftGym[fDia], ...dbDiaEntry.registros };
             }
         });
         
-        if (!state.asistenciaDraftGym[fechaSeleccionada]) {
-            state.asistenciaDraftGym[fechaSeleccionada] = {};
-            const dbDiaEntry = state.asistencias.find(a => a.fecha === fechaSeleccionada && a.categoriaId === 'gym');
+        // Cargar también la fecha seleccionada
+        if (isTodas) {
+            const dbDiaEntryList = state.asistencias.filter(a => a.fecha === fechaSeleccionada && a.categoriaId.startsWith('gym'));
+            dbDiaEntryList.forEach(dbDiaEntry => {
+                if (dbDiaEntry.registros) {
+                    state.asistenciaDraftGym[fechaSeleccionada] = { ...state.asistenciaDraftGym[fechaSeleccionada], ...dbDiaEntry.registros };
+                }
+            });
+        } else {
+            const targetCatId = getGymCategoryId(horarioFiltrado);
+            const dbDiaEntry = state.asistencias.find(a => a.fecha === fechaSeleccionada && a.categoriaId === targetCatId);
             if (dbDiaEntry && dbDiaEntry.registros) {
                 state.asistenciaDraftGym[fechaSeleccionada] = { ...dbDiaEntry.registros };
             }
@@ -3333,20 +3497,61 @@ async function guardarAsistenciaGym() {
     const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
     const weekStr = getWeekString(fechaObj);
     
+    const horarioFiltrado = state.activeHorarioGym || 'todas';
+    const isTodas = horarioFiltrado === 'todas';
+    
     try {
-        const fechasBorrador = Object.keys(state.asistenciaDraftGym).filter(k => k !== '_weekStr');
+        const fechasBorrador = Object.keys(state.asistenciaDraftGym).filter(k => k !== '_weekStr' && k !== '_horarioId');
         
-        for (const f of fechasBorrador) {
-            const registros = state.asistenciaDraftGym[f] || {};
-            await window.db.guardarAsistencia({
-                fecha: f,
-                semana: weekStr,
-                categoriaId: 'gym',
-                sedeId: state.activeSedeId,
-                registros: registros
-            });
+        if (isTodas) {
+            // Agrupar registros por horario real del suscriptor
+            const suscriptores = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
+            const horariosUnicos = [...new Set(suscriptores.map(a => a.horario || 'SIN HORARIO').map(h => h.trim().toUpperCase()))];
+            
+            for (const f of fechasBorrador) {
+                const registrosCompletos = state.asistenciaDraftGym[f] || {};
+                const registrosPorHorario = {};
+                horariosUnicos.forEach(h => {
+                    const catKey = getGymCategoryId(h);
+                    registrosPorHorario[catKey] = {};
+                });
+                
+                Object.keys(registrosCompletos).forEach(aluId => {
+                    const alu = state.alumnos.find(a => a.id === aluId);
+                    if (alu) {
+                        const hVal = (alu.horario || 'SIN HORARIO').trim().toUpperCase();
+                        const catKey = getGymCategoryId(hVal);
+                        if (registrosPorHorario[catKey]) {
+                            registrosPorHorario[catKey][aluId] = registrosCompletos[aluId];
+                        }
+                    }
+                });
+                
+                // Guardar cada horario por separado en Firebase
+                for (const catKey of Object.keys(registrosPorHorario)) {
+                    await window.db.guardarAsistencia({
+                        fecha: f,
+                        semana: weekStr,
+                        categoriaId: catKey,
+                        sedeId: state.activeSedeId,
+                        registros: registrosPorHorario[catKey]
+                    });
+                }
+            }
+        } else {
+            const targetCatId = getGymCategoryId(horarioFiltrado);
+            for (const f of fechasBorrador) {
+                const registros = state.asistenciaDraftGym[f] || {};
+                await window.db.guardarAsistencia({
+                    fecha: f,
+                    semana: weekStr,
+                    categoriaId: targetCatId,
+                    sedeId: state.activeSedeId,
+                    registros: registros
+                });
+            }
         }
-        alert("Asistencias de la semana guardadas correctamente.");
+        alert("Asistencias del gimnasio guardadas correctamente.");
     } catch (err) {
         console.error("Error al guardar asistencias del gimnasio:", err);
         alert("Error al guardar asistencias: " + err.message);
@@ -3391,11 +3596,25 @@ function descargarAsistenciasPDF(tipo) {
         const dateInput = document.getElementById('asistencias-fecha-select-gym');
         const fechaSeleccionada = dateInput ? dateInput.value || obtenerFechaActualStr() : obtenerFechaActualStr();
         weekStr = getWeekString(new Date(fechaSeleccionada + 'T00:00:00'));
-        catNombre = "ASISTENCIA GENERAL GIMNASIO";
+        
+        const horarioFiltrado = state.activeHorarioGym || 'todas';
+        const isTodas = horarioFiltrado === 'todas';
+        
+        catNombre = isTodas ? "ASISTENCIA GENERAL GIMNASIO" : `ASISTENCIA GIMNASIO - ${horarioFiltrado}`;
         diasEntrenamiento = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
         
-        alumnos = state.alumnos.filter(alu => alu.sedeId === state.activeSedeId);
-        asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === 'gym');
+        alumnos = state.alumnos.filter(alu => {
+            if (alu.sedeId !== state.activeSedeId) return false;
+            if (isTodas) return true;
+            return (alu.horario || 'SIN HORARIO').trim().toUpperCase() === horarioFiltrado;
+        });
+        
+        if (isTodas) {
+            asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId.startsWith('gym'));
+        } else {
+            const targetCatId = getGymCategoryId(horarioFiltrado);
+            asistenciasSemana = state.asistencias.filter(a => a.semana === weekStr && a.categoriaId === targetCatId);
+        }
     }
     
     if (!weekStr) {
@@ -3472,9 +3691,13 @@ function descargarAsistenciasPDF(tipo) {
         let asistCount = 0;
         
         diasEntrenamiento.forEach(dia => {
-            const fechaDia = weekDates[dia];
-            const asistFecha = asistenciasSemana.find(a => a.fecha === fechaDia);
-            const estado = (asistFecha && asistFecha.registros) ? asistFecha.registros[alu.id] : 'falta';
+            const registrosDia = {};
+            asistenciasSemana.filter(a => a.fecha === fechaDia).forEach(a => {
+                if (a.registros) {
+                    Object.assign(registrosDia, a.registros);
+                }
+            });
+            const estado = registrosDia[alu.id] || 'falta';
             
             if (estado === 'asistencia') {
                 doc.setTextColor(16, 185, 129); // Verde
