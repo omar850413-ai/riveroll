@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '28.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '28.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '29.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '29.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -692,6 +692,92 @@ function toggleRosterRow(miembroId) {
 }
 
 // --- PLANILLA DE COBROS Y CONTABILIDAD ---
+function obtenerMesesCobroSede(sede) {
+    if (sede && sede.mesesCobro && sede.mesesCobro.length > 0) {
+        return sede.mesesCobro;
+    }
+    return ['2026-07']; // Julio de 2026 por defecto (ya quitó mayo y junio)
+}
+
+function renderPlanillaCobrosSedeHeaders(sede) {
+    const theadRow = document.getElementById('planilla-sede-thead-row');
+    if (!theadRow) return;
+    
+    const meses = obtenerMesesCobroSede(sede);
+    let html = `<th>Miembro</th><th>Inscripción</th>`;
+    meses.forEach(m => {
+        const [anio, mes] = m.split('-');
+        const mesesNombres = {
+            '01': 'Ene', '02': 'Feb', '03': 'Mar', '04': 'Abr', '05': 'May', '06': 'Jun',
+            '07': 'Jul', '08': 'Ago', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dic'
+        };
+        const nombreMes = mesesNombres[mes] || mes;
+        html += `<th>${nombreMes} (${anio})</th>`;
+    });
+    html += `<th style="text-align: center;">Acciones</th>`;
+    theadRow.innerHTML = html;
+}
+
+function abrirModalGenerarMesPago() {
+    const modal = document.getElementById('modal-generar-mes');
+    if (!modal) return;
+    
+    // Auto-sugerir el mes siguiente al último generado
+    const sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (sede) {
+        const meses = obtenerMesesCobroSede(sede);
+        if (meses.length > 0) {
+            const ultimoMes = meses[meses.length - 1]; // "2026-07"
+            const [anio, mes] = ultimoMes.split('-').map(Number);
+            let sigMes = mes + 1;
+            let sigAnio = anio;
+            if (sigMes > 12) {
+                sigMes = 1;
+                sigAnio += 1;
+            }
+            const sigMesStr = String(sigMes).padStart(2, '0');
+            document.getElementById('nuevo-mes-select').value = `${sigAnio}-${sigMesStr}`;
+        } else {
+            document.getElementById('nuevo-mes-select').value = obtenerFechaActualStr().slice(0, 7);
+        }
+    }
+    
+    openModal('modal-generar-mes');
+}
+
+async function guardarNuevoMesPago(event) {
+    event.preventDefault();
+    const input = document.getElementById('nuevo-mes-select');
+    if (!input || !input.value) return;
+    
+    const nuevoMes = input.value; // Formato "YYYY-MM"
+    const sede = state.sedes.find(s => s.id === state.activeSedeId);
+    if (!sede) return;
+    
+    const meses = obtenerMesesCobroSede(sede);
+    if (meses.includes(nuevoMes)) {
+        alert("Este mes de pago ya existe en la planilla.");
+        return;
+    }
+    
+    // Añadir el nuevo mes
+    const nuevosMeses = [...meses, nuevoMes].sort();
+    
+    try {
+        await window.db.actualizarSede(sede.id, { mesesCobro: nuevosMeses });
+        
+        // Actualizar localmente el objeto de sede por si acaso
+        sede.mesesCobro = nuevosMeses;
+        
+        closeModal('modal-generar-mes');
+        alert("Nuevo mes de cobro generado con éxito.");
+        renderPlanillaCobrosSede();
+    } catch (err) {
+        console.error("Error al actualizar meses de cobro en sede:", err);
+        alert("Error al generar el nuevo mes de cobro: " + err.message);
+    }
+}
+
 function renderPlanillaCobrosSede() {
     const tbody = document.getElementById('planilla-sede-tbody');
     if (!tbody) return;
@@ -700,20 +786,43 @@ function renderPlanillaCobrosSede() {
     const sede = state.sedes.find(s => s.id === state.activeSedeId);
     if (!sede) return;
     
+    renderPlanillaCobrosSedeHeaders(sede);
+    
     const miembrosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
     
+    const meses = obtenerMesesCobroSede(sede);
+    
     if (miembrosSede.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No hay registros contables en este centro.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${meses.length + 3}" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No hay registros contables en este centro.</td></tr>`;
         return;
     }
     
     miembrosSede.forEach(miembro => {
         const tr = document.createElement('tr');
         
-        // Obtener estatus y monto de abonos
+        // Obtener estatus de Inscripción
         const pagoInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
-        const pagoMayo = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-05']);
-        const pagoJunio = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-06']);
+        
+        let mensualidadesHtml = '';
+        meses.forEach(m => {
+            if (!miembro.pagos.mensualidades) {
+                miembro.pagos.mensualidades = {};
+            }
+            if (!miembro.pagos.mensualidades[m]) {
+                miembro.pagos.mensualidades[m] = { status: 'no-pagado', abono: 0 };
+            }
+            const pagoMes = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades[m]);
+            mensualidadesHtml += `
+                <td>
+                    <button class="planilla-payment-btn ${pagoMes.status}" 
+                            onclick="handlePaymentSingleClick('${miembro.id}', '${m}')" 
+                            ondblclick="handlePaymentDoubleClick('${miembro.id}', '${m}')" 
+                            title="Un clic: Pagar/Adeudar | Doble clic: Abonar">
+                        ${pagoMes.texto}
+                    </button>
+                </td>
+            `;
+        });
         
         tr.innerHTML = `
             <td style="font-weight: 600; color: #fff;">
@@ -733,22 +842,7 @@ function renderPlanillaCobrosSede() {
                     ${pagoInsc.texto}
                 </button>
             </td>
-            <td>
-                <button class="planilla-payment-btn ${pagoMayo.status}" 
-                        onclick="handlePaymentSingleClick('${miembro.id}', '2026-05')" 
-                        ondblclick="handlePaymentDoubleClick('${miembro.id}', '2026-05')" 
-                        title="Un clic: Pagar/Adeudar | Doble clic: Abonar">
-                    ${pagoMayo.texto}
-                </button>
-            </td>
-            <td>
-                <button class="planilla-payment-btn ${pagoJunio.status}" 
-                        onclick="handlePaymentSingleClick('${miembro.id}', '2026-06')" 
-                        ondblclick="handlePaymentDoubleClick('${miembro.id}', '2026-06')" 
-                        title="Un clic: Pagar/Adeudar | Doble clic: Abonar">
-                    ${pagoJunio.texto}
-                </button>
-            </td>
+            ${mensualidadesHtml}
             <td style="text-align: center; white-space: nowrap;">
                 <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}')" title="Cobrar Adeudos por WhatsApp" style="margin-right: 0.35rem; border-color: var(--color-danger); color: var(--color-danger); background: rgba(239, 68, 68, 0.02);">
                     <i class="fa-brands fa-whatsapp"></i> Cobrar
@@ -1054,7 +1148,12 @@ function enviarRecordatorioWhatsApp(miembroId) {
     }
     
     // 2. Mensualidades
-    Object.entries(miembro.pagos.mensualidades).forEach(([mes, valor]) => {
+    const mesesActivos = obtenerMesesCobroSede(Sede);
+    mesesActivos.forEach(mes => {
+        const valor = (miembro.pagos.mensualidades && miembro.pagos.mensualidades[mes]) 
+            ? miembro.pagos.mensualidades[mes] 
+            : { status: 'no-pagado', abono: 0 };
+            
         let status = 'pendiente';
         let abono = 0;
         
@@ -1155,13 +1254,18 @@ async function saveAlumno(event) {
         horario,
         
         foto: state.base64Foto,
-        pagos: id ? state.alumnos.find(a => a.id === id).pagos : {
-            inscripcion: { status: 'no-pagado', abono: 0 },
-            mensualidades: {
-                '2026-05': { status: 'no-pagado', abono: 0 },
-                '2026-06': { status: 'no-pagado', abono: 0 }
-            }
-        }
+        pagos: id ? state.alumnos.find(a => a.id === id).pagos : (() => {
+            const Sede = state.sedes.find(s => s.id === state.activeSedeId);
+            const meses = obtenerMesesCobroSede(Sede);
+            const mensualidadesObj = {};
+            meses.forEach(m => {
+                mensualidadesObj[m] = { status: 'no-pagado', abono: 0 };
+            });
+            return {
+                inscripcion: { status: 'no-pagado', abono: 0 },
+                mensualidades: mensualidadesObj
+            };
+        })()
     };
     
     if (id) {
@@ -2029,33 +2133,47 @@ function enviarComprobanteWhatsApp(miembroId) {
     let ultimoMonto = 0;
     let esAbono = '0';
     
-    // Obtener los estatus
-    const pJunio = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-06']);
-    const pMayo = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-05']);
-    const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
+    const meses = obtenerMesesCobroSede(Sede);
+    const mesesInversos = [...meses].reverse();
     
-    // Evaluar en orden de prioridad el último pago registrado
-    if (pJunio.status === 'pagado') {
-        ultimoConcepto = 'Mensualidad de Junio';
-        ultimoMonto = Sede.mensualidad;
-    } else if (pJunio.status === 'abonado') {
-        ultimoConcepto = 'Mensualidad de Junio';
-        ultimoMonto = miembro.pagos.mensualidades['2026-06'].abono || 0;
-        esAbono = '1';
-    } else if (pMayo.status === 'pagado') {
-        ultimoConcepto = 'Mensualidad de Mayo';
-        ultimoMonto = Sede.mensualidad;
-    } else if (pMayo.status === 'abonado') {
-        ultimoConcepto = 'Mensualidad de Mayo';
-        ultimoMonto = miembro.pagos.mensualidades['2026-05'].abono || 0;
-        esAbono = '1';
-    } else if (pInsc.status === 'pagado') {
-        ultimoConcepto = 'Cuota de Inscripción';
-        ultimoMonto = Sede.inscripcion;
-    } else if (pInsc.status === 'abonado') {
-        ultimoConcepto = 'Cuota de Inscripción';
-        ultimoMonto = miembro.pagos.inscripcion.abono || 0;
-        esAbono = '1';
+    // Buscar la mensualidad más reciente que tenga un pago o abono
+    for (const m of mesesInversos) {
+        if (miembro.pagos.mensualidades && miembro.pagos.mensualidades[m]) {
+            const pMes = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades[m]);
+            if (pMes.status === 'pagado') {
+                const [anio, mes] = m.split('-');
+                const mesesNombres = {
+                    '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio',
+                    '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+                };
+                ultimoConcepto = `Mensualidad de ${mesesNombres[mes] || mes} ${anio}`;
+                ultimoMonto = Sede.mensualidad;
+                break;
+            } else if (pMes.status === 'abonado') {
+                const [anio, mes] = m.split('-');
+                const mesesNombres = {
+                    '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio',
+                    '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+                };
+                ultimoConcepto = `Mensualidad de ${mesesNombres[mes] || mes} ${anio}`;
+                ultimoMonto = miembro.pagos.mensualidades[m].abono || 0;
+                esAbono = '1';
+                break;
+            }
+        }
+    }
+    
+    // Si no se encontró ningún pago en mensualidades, verificar inscripción
+    if (!ultimoConcepto) {
+        const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
+        if (pInsc.status === 'pagado') {
+            ultimoConcepto = 'Cuota de Inscripción';
+            ultimoMonto = Sede.inscripcion;
+        } else if (pInsc.status === 'abonado') {
+            ultimoConcepto = 'Cuota de Inscripción';
+            ultimoMonto = miembro.pagos.inscripcion.abono || 0;
+            esAbono = '1';
+        }
     }
     
     if (!ultimoConcepto) {

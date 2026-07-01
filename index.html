@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v28') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v28', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v29') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v29', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -219,14 +219,19 @@
                 
                 <!-- Sub-Panel: Planilla de Cobros (Pestaña 2) -->
                 <div id="sub-panel-contabilidad" class="sede-sub-view" style="display: none;">
-                    <div class="glass-panel">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                            <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;"><i class="fa-solid fa-receipt"></i> Planilla de Cobros (Ingresos)</h3>
-                            <div style="display: flex; gap: 0.75rem;">
-                                <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('planilla')" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.02);">
-                                    <i class="fa-solid fa-eye"></i> Vista Previa
+                          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin: 0;"><i class="fa-solid fa-file-invoice-dollar"></i> Planilla de Cobros</h3>
+                                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0.25rem 0 0 0; text-transform: uppercase;">Estado de inscripciones y mensualidades de la sede</p>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn btn-primary btn-sm" onclick="abrirModalGenerarMesPago()" style="background: var(--color-accent); color: #000; font-weight: bold; border: none;">
+                                    <i class="fa-solid fa-calendar-plus"></i> Generar Mes de Pago
                                 </button>
-                                <button class="btn btn-primary btn-sm" onclick="descargarReportePDF('planilla')" style="background: #0ea5e9; color: #000; font-weight: 700;">
+                                <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('planilla')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
+                                    <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+                                </button>
+                                <button class="btn btn-outline btn-sm" onclick="exportarPlanillaExcel()" style="border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.02);">
                                     <i class="fa-solid fa-file-arrow-down"></i> Descargar
                                 </button>
                             </div>
@@ -235,11 +240,9 @@
                         <div class="table-container">
                             <table class="accounting-table">
                                 <thead>
-                                    <tr>
+                                    <tr id="planilla-sede-thead-row">
                                         <th>Miembro</th>
                                         <th>Inscripción</th>
-                                        <th>Mayo</th>
-                                        <th>Junio (Actual)</th>
                                         <th style="text-align: center;">Acciones</th>
                                     </tr>
                                 </thead>
@@ -1077,8 +1080,29 @@
         </div>
     </div>
 
+    <!-- MODAL: GENERAR MES DE PAGO -->
+    <div id="modal-generar-mes" class="modal-overlay" style="z-index: 100;">
+        <div class="modal-container" style="max-width: 400px; padding: 2rem;">
+            <div class="modal-header" style="margin-bottom: 1.5rem;">
+                <h3><i class="fa-solid fa-calendar-plus"></i> Generar Mes de Pago</h3>
+                <button type="button" class="modal-close" onclick="closeModal('modal-generar-mes')">&times;</button>
+            </div>
+            <form id="form-generar-mes" onsubmit="guardarNuevoMesPago(event)">
+                <div class="form-group">
+                    <label for="nuevo-mes-select"><i class="fa-solid fa-calendar-day"></i> Seleccionar Mes a Generar</label>
+                    <input type="month" id="nuevo-mes-select" class="form-control" required style="width: 100%; margin-top: 0.5rem;">
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="closeModal('modal-generar-mes')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1; background: var(--color-accent); color: #000; font-weight: bold;">Generar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=28"></script>
-    <script src="app.js?v=28"></script>
+    <script src="db.js?v=29"></script>
+    <script src="app.js?v=29"></script>
 </body>
 </html>
