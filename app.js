@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '27.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '27.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '28.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '28.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -500,7 +500,7 @@ function switchSedeView(viewId) {
         if (viewId === 'miembros' || viewId === 'miembros-btn') {
             if (btnBack) btnBack.style.display = 'none';
             if (btnMiembros) btnMiembros.style.display = 'inline-flex';
-            if (btnConta) btnConta.style.display = esSoccer ? 'inline-flex' : 'none';
+            if (btnConta) btnConta.style.display = 'inline-flex';
             if (btnTotales) btnTotales.style.display = 'inline-flex';
             if (btnTrabajadores) btnTrabajadores.style.display = 'inline-flex';
             if (btnCats) btnCats.style.display = esSoccer ? 'inline-flex' : 'none';
