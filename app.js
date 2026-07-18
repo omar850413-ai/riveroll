@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '29.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '29.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '30.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '30.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -847,6 +847,9 @@ function renderPlanillaCobrosSede() {
                 <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}')" title="Cobrar Adeudos por WhatsApp" style="margin-right: 0.35rem; border-color: var(--color-danger); color: var(--color-danger); background: rgba(239, 68, 68, 0.02);">
                     <i class="fa-brands fa-whatsapp"></i> Cobrar
                 </button>
+                <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioAmigableWhatsApp('${miembro.id}')" title="Enviar Recordatorio Amistoso de Pago" style="margin-right: 0.35rem; border-color: #eab308; color: #eab308; background: rgba(234, 179, 8, 0.02);">
+                    <i class="fa-regular fa-bell"></i> Recordatorio
+                </button>
                 <button class="btn btn-outline btn-sm" onclick="enviarComprobanteWhatsApp('${miembro.id}')" title="Enviar Comprobante de Pago por WhatsApp" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.02);">
                     <i class="fa-solid fa-receipt"></i> Ticket
                 </button>
@@ -1058,9 +1061,19 @@ async function activarCamaraEnVivo() {
     const video = document.getElementById('video-stream');
     const areaTrabajo = document.getElementById('camera-work-area');
     
+    // Apagar primero si ya existe para renegociar restricciones
+    if (streamCamara) {
+        streamCamara.getTracks().forEach(track => track.stop());
+        streamCamara = null;
+    }
+    
+    if (!state.cameraFacingMode) {
+        state.cameraFacingMode = "user";
+    }
+    
     try {
         streamCamara = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
+            video: { facingMode: state.cameraFacingMode },
             audio: false
         });
         
@@ -1070,6 +1083,11 @@ async function activarCamaraEnVivo() {
         console.error("Error al acceder a la cámara:", err);
         alert("No se pudo acceder a la cámara del dispositivo. Asegúrate de otorgar los permisos necesarios.");
     }
+}
+
+function alternarCamaraFacingMode() {
+    state.cameraFacingMode = state.cameraFacingMode === "user" ? "environment" : "user";
+    activarCamaraEnVivo();
 }
 
 function capturarFotoCamara() {
@@ -1188,6 +1206,83 @@ function enviarRecordatorioWhatsApp(miembroId) {
     } else {
         targetPhone = miembro.tutorTelefono || '';
         mensaje = `Hola ${miembro.tutorNombre}, le saludamos de *${Sede.nombre}*. Le recordamos amablemente el estado administrativo de su hijo *${miembro.nombre}*.\n\n*Detalle de Adeudos:*\n${desgloseText.map(t => `• ${t}`).join('\n')}\n\n*Total Pendiente: $${totalAdeudo}*\n\nLe solicitamos su valioso apoyo para realizar el pago correspondiente mediante transferencia. ¡Muchas gracias por su confianza de siempre!`;
+    }
+    
+    const formattedPhone = targetPhone.startsWith('52') ? targetPhone : `52${targetPhone}`;
+    window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(mensaje)}`, '_blank');
+}
+
+function enviarRecordatorioAmigableWhatsApp(miembroId) {
+    const miembro = state.alumnos.find(a => a.id === miembroId);
+    if (!miembro) return;
+    
+    const Sede = state.sedes.find(s => s.id === miembro.sedeId);
+    if (!Sede) return;
+    
+    const esSoccer = Sede.rubro === 'soccer';
+    const cuotaMensual = Sede.mensualidad;
+    const cuotaInscripcion = Sede.inscripcion;
+    
+    let deudaInscripcion = 0;
+    let desgloseText = [];
+    let totalAdeudo = 0;
+    
+    // 1. Inscripción
+    const pInsc = miembro.pagos.inscripcion;
+    if (pInsc && typeof pInsc === 'object') {
+        if (pInsc.status === 'no-pagado') {
+            deudaInscripcion = cuotaInscripcion;
+            totalAdeudo += cuotaInscripcion;
+            desgloseText.push(`Inscripción: $${cuotaInscripcion}`);
+        } else if (pInsc.status === 'abonado') {
+            const restante = cuotaInscripcion - pInsc.abono;
+            deudaInscripcion = restante;
+            totalAdeudo += restante;
+            desgloseText.push(`Restante Inscripción (Abonó $${pInsc.abono}): $${restante}`);
+        }
+    }
+    
+    // 2. Mensualidades
+    const mesesActivos = obtenerMesesCobroSede(Sede);
+    mesesActivos.forEach(mes => {
+        const valor = (miembro.pagos.mensualidades && miembro.pagos.mensualidades[mes]) 
+            ? miembro.pagos.mensualidades[mes] 
+            : { status: 'no-pagado', abono: 0 };
+            
+        let status = 'pendiente';
+        let abono = 0;
+        
+        if (typeof valor === 'string') {
+            status = valor === 'pagado' ? 'pagado' : 'no-pagado';
+        } else if (valor && typeof valor === 'object') {
+            status = valor.status;
+            abono = valor.abono || 0;
+        }
+        
+        if (status === 'no-pagado' || status === 'pendiente') {
+            totalAdeudo += cuotaMensual;
+            desgloseText.push(`Mensualidad ${obtenerNombreMes(mes)}: $${cuotaMensual}`);
+        } else if (status === 'abonado') {
+            const restante = cuotaMensual - abono;
+            totalAdeudo += restante;
+            desgloseText.push(`Restante ${obtenerNombreMes(mes)} (Abonó $${abono}): $${restante}`);
+        }
+    });
+    
+    if (totalAdeudo === 0) {
+        alert("El miembro se encuentra al corriente de sus pagos.");
+        return;
+    }
+    
+    let mensaje = '';
+    let targetPhone = '';
+    
+    if (Sede.rubro !== 'soccer') {
+        targetPhone = miembro.telefonoSuscriptor || '';
+        mensaje = `Hola ${miembro.nombre}, le saludamos de *${Sede.nombre}*. Esperamos que se encuentre muy bien. Le enviamos este recordatorio amigable sobre su suscripción activa.\n\n*Detalle de Adeudos:*\n${desgloseText.map(t => `• ${t}`).join('\n')}\n\n*Total Pendiente: $${totalAdeudo}*\n\nLe agradecemos de antemano su apoyo para realizar el pago correspondiente. ¡Que tenga un excelente día!`;
+    } else {
+        targetPhone = miembro.tutorTelefono || '';
+        mensaje = `Hola ${miembro.tutorNombre}, le saludamos de *${Sede.nombre}*. Esperamos que se encuentre muy bien. Le enviamos este recordatorio amigable sobre la mensualidad de su hijo *${miembro.nombre}*.\n\n*Detalle de Adeudos:*\n${desgloseText.map(t => `• ${t}`).join('\n')}\n\n*Total Pendiente: $${totalAdeudo}*\n\nLe agradecemos de antemano su apoyo para realizar el pago correspondiente. ¡Que tenga un excelente día!`;
     }
     
     const formattedPhone = targetPhone.startsWith('52') ? targetPhone : `52${targetPhone}`;
@@ -2484,13 +2579,23 @@ function previewTrabajadorImage(event) {
 }
 
 async function encenderCamaraTrabajador() {
+    // Apagar primero si ya existe para renegociar restricciones
+    if (streamTrabajador) {
+        streamTrabajador.getTracks().forEach(track => track.stop());
+        streamTrabajador = null;
+    }
+    
+    if (!state.cameraTrabajadorFacingMode) {
+        state.cameraTrabajadorFacingMode = "user";
+    }
+
     try {
         const container = document.getElementById('camara-contenedor-trabajador');
         const video = document.getElementById('video-stream-trabajador');
         container.style.display = 'block';
         
         streamTrabajador = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user' },
+            video: { facingMode: state.cameraTrabajadorFacingMode },
             audio: false
         });
         video.srcObject = streamTrabajador;
@@ -2498,6 +2603,11 @@ async function encenderCamaraTrabajador() {
         console.error("Error al encender cámara de trabajador:", err);
         alert("No se pudo acceder a la cámara.");
     }
+}
+
+function alternarCamaraTrabajadorFacingMode() {
+    state.cameraTrabajadorFacingMode = state.cameraTrabajadorFacingMode === "user" ? "environment" : "user";
+    encenderCamaraTrabajador();
 }
 
 function capturarFotoTrabajador() {

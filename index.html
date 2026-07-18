@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v29') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v29', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v30') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v30', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -723,9 +723,12 @@
                             <div class="camera-container">
                                 <video id="video-stream" autoplay class="camera-video"></video>
                             </div>
-                            <div class="camera-controls">
+                            <div class="camera-controls" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
                                 <button type="button" class="btn btn-primary btn-sm" onclick="capturarFotoCamara()">
                                     <i class="fa-solid fa-camera"></i> Capturar
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="alternarCamaraFacingMode()" style="border-color: var(--color-accent); color: var(--color-accent); font-weight: bold;">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Rotar Cámara
                                 </button>
                                 <button type="button" class="btn btn-outline btn-sm" onclick="apagarCamara()">
                                     Cancelar
@@ -932,6 +935,9 @@
                                     <button type="button" class="btn btn-primary btn-sm" onclick="capturarFotoTrabajador()">
                                         <i class="fa-solid fa-camera"></i> Capturar
                                     </button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="alternarCamaraTrabajadorFacingMode()" style="border-color: var(--color-accent); color: var(--color-accent); font-weight: bold;">
+                                        <i class="fa-solid fa-arrows-rotate"></i> Rotar
+                                    </button>
                                     <button type="button" class="btn btn-outline btn-sm" onclick="apagarCamaraTrabajador()">
                                         Cancelar
                                     </button>
@@ -1102,7 +1108,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=29"></script>
-    <script src="app.js?v=29"></script>
+    <script src="db.js?v=30"></script>
+    <script src="app.js?v=30"></script>
 </body>
 </html>
