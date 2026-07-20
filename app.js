@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '30.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '30.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '31.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '31.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -1874,15 +1874,38 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
     
     if (tipo === 'planilla') {
         const miembrosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
+        const meses = obtenerMesesCobroSede(Sede);
+        
+        let headerMeses = '';
+        meses.forEach(m => {
+            const [anio, mes] = m.split('-');
+            const mesesNombres = {
+                '01': 'Ene', '02': 'Feb', '03': 'Mar', '04': 'Abr', '05': 'May', '06': 'Jun',
+                '07': 'Jul', '08': 'Ago', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dic'
+            };
+            const nombreMes = mesesNombres[mes] || mes;
+            headerMeses += `<th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000;">${nombreMes} (${anio})</th>`;
+        });
         
         let filas = '';
         if (miembrosSede.length === 0) {
-            filas = `<tr><td colspan="4" style="text-align: center; padding: 1rem; color: #555;">No hay integrantes registrados.</td></tr>`;
+            filas = `<tr><td colspan="${meses.length + 2}" style="text-align: center; padding: 1rem; color: #555;">No hay integrantes registrados.</td></tr>`;
         } else {
             miembrosSede.forEach(miembro => {
                 const pInsc = obtenerEstatusPagoObjeto(miembro.pagos.inscripcion);
-                const pMayo = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-05']);
-                const pJunio = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades['2026-06']);
+                
+                let mensualidadesHtml = '';
+                meses.forEach(m => {
+                    if (!miembro.pagos.mensualidades) miembro.pagos.mensualidades = {};
+                    if (!miembro.pagos.mensualidades[m]) miembro.pagos.mensualidades[m] = { status: 'no-pagado', abono: 0 };
+                    
+                    const pMes = obtenerEstatusPagoObjeto(miembro.pagos.mensualidades[m]);
+                    mensualidadesHtml += `
+                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pMes.status === 'pagado' ? '#10b981' : pMes.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
+                            ${pMes.texto}
+                        </td>
+                    `;
+                });
                 
                 filas += `
                     <tr>
@@ -1893,15 +1916,74 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
                         <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pInsc.status === 'pagado' ? '#10b981' : pInsc.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
                             ${pInsc.texto}
                         </td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pMayo.status === 'pagado' ? '#10b981' : pMayo.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
-                            ${pMayo.texto}
-                        </td>
-                        <td style="padding: 0.75rem; border-bottom: 1px solid #eee; text-transform: uppercase; font-weight: bold; color: ${pJunio.status === 'pagado' ? '#10b981' : pJunio.status === 'abonado' ? '#8b5cf6' : '#ef4444'}">
-                            ${pJunio.texto}
-                        </td>
+                        ${mensualidadesHtml}
                     </tr>
                 `;
             });
+
+            // Calcular Corte de Caja
+            let totalInscripcionRecaudado = 0;
+            let totalInscripcionPendiente = 0;
+            const mensualidadesRecaudado = {};
+            const mensualidadesPendiente = {};
+            
+            meses.forEach(m => {
+                mensualidadesRecaudado[m] = 0;
+                mensualidadesPendiente[m] = 0;
+            });
+            
+            miembrosSede.forEach(miembro => {
+                // Inscripción
+                const pInsc = miembro.pagos.inscripcion || { status: 'no-pagado', abono: 0 };
+                if (pInsc.status === 'pagado') {
+                    totalInscripcionRecaudado += (Sede.inscripcion || 0);
+                } else if (pInsc.status === 'abonado') {
+                    totalInscripcionRecaudado += (pInsc.abono || 0);
+                    totalInscripcionPendiente += ((Sede.inscripcion || 0) - (pInsc.abono || 0));
+                } else {
+                    totalInscripcionPendiente += (Sede.inscripcion || 0);
+                }
+                
+                // Mensualidades
+                meses.forEach(m => {
+                    const pMes = (miembro.pagos.mensualidades && miembro.pagos.mensualidades[m]) 
+                        ? miembro.pagos.mensualidades[m] 
+                        : { status: 'no-pagado', abono: 0 };
+                        
+                    if (pMes.status === 'pagado') {
+                        mensualidadesRecaudado[m] += (Sede.mensualidad || 0);
+                    } else if (pMes.status === 'abonado') {
+                        mensualidadesRecaudado[m] += (pMes.abono || 0);
+                        mensualidadesPendiente[m] += ((Sede.mensualidad || 0) - (pMes.abono || 0));
+                    } else {
+                        mensualidadesPendiente[m] += (Sede.mensualidad || 0);
+                    }
+                });
+            });
+            
+            // Fila de Totales Recaudados
+            let filaRecaudadoHtml = `
+                <tr style="background: #f0fdf4; font-weight: bold; border-top: 2px solid #000; color: #166534;">
+                    <td style="padding: 0.75rem; border-bottom: 1px solid #ddd;">TOTAL RECAUDADO</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid #ddd;">$${totalInscripcionRecaudado}</td>
+            `;
+            meses.forEach(m => {
+                filaRecaudadoHtml += `<td style="padding: 0.75rem; border-bottom: 1px solid #ddd;">$${mensualidadesRecaudado[m]}</td>`;
+            });
+            filaRecaudadoHtml += `</tr>`;
+            
+            // Fila de Totales Pendientes
+            let filaPendienteHtml = `
+                <tr style="background: #fef2f2; font-weight: bold; color: #991b1b;">
+                    <td style="padding: 0.75rem; border-bottom: 2px solid #000;">TOTAL PENDIENTE</td>
+                    <td style="padding: 0.75rem; border-bottom: 2px solid #000;">$${totalInscripcionPendiente}</td>
+            `;
+            meses.forEach(m => {
+                filaPendienteHtml += `<td style="padding: 0.75rem; border-bottom: 2px solid #000;">$${mensualidadesPendiente[m]}</td>`;
+            });
+            filaPendienteHtml += `</tr>`;
+            
+            filas += filaRecaudadoHtml + filaPendienteHtml;
         }
         
         bodyHtml = `
@@ -1912,14 +1994,14 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
                 </div>
                 <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
             </div>
-            <h4 style="margin-bottom: 1rem; font-weight: bold; text-transform: uppercase; color: #000;">Control de Cobros y Mensualidades</h4>
+            
+            <h4 style="margin-bottom: 1rem; font-weight: bold; text-transform: uppercase; color: #000; font-size: 1.1rem; text-align: center;">Control de Cobros y Mensualidades</h4>
             <table style="width: 100%; border-collapse: collapse; color: #000;">
                 <thead>
-                    <tr style="border-bottom: 2px solid #000; text-align: left;">
-                        <th style="padding: 0.5rem; color: #000;">Integrante</th>
-                        <th style="padding: 0.5rem; color: #000;">Inscripción</th>
-                        <th style="padding: 0.5rem; color: #000;">Mayo</th>
-                        <th style="padding: 0.5rem; color: #000;">Junio</th>
+                    <tr style="text-align: left;">
+                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000;">Miembro</th>
+                        <th style="padding: 0.5rem; color: #000; border-bottom: 2px solid #000;">Inscripción</th>
+                        ${headerMeses}
                     </tr>
                 </thead>
                 <tbody>

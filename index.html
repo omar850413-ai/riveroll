@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v30') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v30', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v31') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v31', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -229,10 +229,7 @@
                                     <i class="fa-solid fa-calendar-plus"></i> Generar Mes de Pago
                                 </button>
                                 <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('planilla')" style="border-color: var(--color-accent); color: var(--color-accent); background: rgba(205,162,80,0.02);">
-                                    <i class="fa-solid fa-file-pdf"></i> Reporte PDF
-                                </button>
-                                <button class="btn btn-outline btn-sm" onclick="exportarPlanillaExcel()" style="border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.02);">
-                                    <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                                    <i class="fa-solid fa-file-invoice-dollar"></i> Reporte de Finanzas
                                 </button>
                             </div>
                         </div>
@@ -1108,7 +1105,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=30"></script>
-    <script src="app.js?v=30"></script>
+    <script src="db.js?v=31"></script>
+    <script src="app.js?v=31"></script>
 </body>
 </html>
