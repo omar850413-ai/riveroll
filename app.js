@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '33.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '33.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '34.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '34.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -794,14 +794,29 @@ function renderPlanillaCobrosSede() {
     
     const miembrosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
     
+    // Ordenar de forma ascendente según el día del mes de su fecha de ingreso (1 al 31)
+    const miembrosOrdenados = [...miembrosSede].sort((a, b) => {
+        const diaA = (a.fechaIngreso && a.fechaIngreso.includes('-')) 
+            ? parseInt(a.fechaIngreso.split('-')[2], 10) 
+            : 999;
+        const diaB = (b.fechaIngreso && b.fechaIngreso.includes('-')) 
+            ? parseInt(b.fechaIngreso.split('-')[2], 10) 
+            : 999;
+        
+        if (diaA !== diaB) {
+            return diaA - diaB;
+        }
+        return a.nombre.localeCompare(b.nombre);
+    });
+    
     const meses = obtenerMesesCobroSede(sede);
     
-    if (miembrosSede.length === 0) {
+    if (miembrosOrdenados.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${meses.length + 3}" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No hay registros contables en este centro.</td></tr>`;
         return;
     }
     
-    miembrosSede.forEach(miembro => {
+    miembrosOrdenados.forEach(miembro => {
         const tr = document.createElement('tr');
         
         // Obtener estatus de Inscripción
@@ -847,16 +862,21 @@ function renderPlanillaCobrosSede() {
                 </button>
             </td>
             ${mensualidadesHtml}
-            <td style="text-align: center; white-space: nowrap;">
-                <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}')" title="Cobrar Adeudos por WhatsApp" style="margin-right: 0.35rem; border-color: var(--color-danger); color: var(--color-danger); background: rgba(239, 68, 68, 0.02);">
-                    <i class="fa-brands fa-whatsapp"></i> Cobrar
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioAmigableWhatsApp('${miembro.id}')" title="Enviar Recordatorio Amistoso de Pago" style="margin-right: 0.35rem; border-color: #eab308; color: #eab308; background: rgba(234, 179, 8, 0.02);">
-                    <i class="fa-regular fa-bell"></i> Recordatorio
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="enviarComprobanteWhatsApp('${miembro.id}')" title="Enviar Comprobante de Pago por WhatsApp" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.02);">
-                    <i class="fa-solid fa-receipt"></i> Ticket
-                </button>
+            <td style="text-align: center; white-space: nowrap; padding-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: center; gap: 0.35rem;">
+                    <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioWhatsApp('${miembro.id}')" title="Cobrar Adeudos por WhatsApp" style="border-color: var(--color-danger); color: var(--color-danger); background: rgba(239, 68, 68, 0.02);">
+                        <i class="fa-brands fa-whatsapp"></i> Cobrar
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="enviarRecordatorioAmigableWhatsApp('${miembro.id}')" title="Enviar Recordatorio Amistoso de Pago" style="border-color: #eab308; color: #eab308; background: rgba(234, 179, 8, 0.02);">
+                        <i class="fa-regular fa-bell"></i> Recordatorio
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="enviarComprobanteWhatsApp('${miembro.id}')" title="Enviar Comprobante de Pago por WhatsApp" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.02);">
+                        <i class="fa-solid fa-receipt"></i> Ticket
+                    </button>
+                </div>
+                <div style="font-size: 0.65rem; color: var(--color-text-muted); margin-top: 0.35rem; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">
+                    ${miembro.fechaIngreso ? `<i class="fa-regular fa-calendar"></i> Ingreso: ${miembro.fechaIngreso.split('-')[2]}/${miembro.fechaIngreso.split('-')[1]} (Día ${parseInt(miembro.fechaIngreso.split('-')[2], 10)})` : '<i class="fa-solid fa-triangle-exclamation" style="color:var(--color-danger)"></i> Sin fecha ingreso'}
+                </div>
             </td>
         `;
         
@@ -1300,6 +1320,7 @@ async function saveAlumno(event) {
     const id = document.getElementById('edit-alumno-id').value;
     const nombre = document.getElementById('alumno-nombre').value;
     const fechaNacimiento = document.getElementById('alumno-nacimiento').value;
+    const fechaIngreso = document.getElementById('alumno-ingreso') ? document.getElementById('alumno-ingreso').value : '';
     const categoriaId = document.getElementById('alumno-categoria').value;
     let categoria = '';
     const Sede = state.sedes.find(s => s.id === state.activeSedeId);
@@ -1339,6 +1360,7 @@ async function saveAlumno(event) {
         nombre,
         sedeId: state.activeSedeId,
         fechaNacimiento,
+        fechaIngreso,
         categoria,
         categoriaId,
         tutorNombre,
@@ -1640,6 +1662,7 @@ function openEditAlumnoModal(id) {
     document.getElementById('edit-alumno-id').value = alumno.id;
     document.getElementById('alumno-nombre').value = alumno.nombre;
     document.getElementById('alumno-nacimiento').value = alumno.fechaNacimiento;
+    document.getElementById('alumno-ingreso').value = alumno.fechaIngreso || '';
     document.getElementById('alumno-tutor').value = alumno.tutorNombre;
     document.getElementById('alumno-telefono').value = alumno.tutorTelefono;
     
