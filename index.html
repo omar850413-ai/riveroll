@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v31') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v31', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v32') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v32', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -255,14 +255,29 @@
                 <div id="sub-panel-totales" class="sede-sub-view" style="display: none;">
                     
                     <!-- ENCABEZADO ACCIONES FINANCIERAS -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                        <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff;"><i class="fa-solid fa-wallet"></i> Resumen de Caja y Totales</h3>
-                        <div style="display: flex; gap: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem;">
+                        <div>
+                            <h3 style="font-family: var(--font-title); font-size: 1.5rem; color: #fff; margin: 0;"><i class="fa-solid fa-wallet"></i> Resumen de Caja y Totales</h3>
+                            <p style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0.25rem 0 0 0; text-transform: uppercase;">Administración de ingresos, egresos y balances del centro</p>
+                        </div>
+                        
+                        <!-- Caja de Cierre Mensual -->
+                        <div style="display: flex; align-items: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.02); padding: 0.5rem 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <label style="font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: bold; white-space: nowrap;"><i class="fa-solid fa-calendar"></i> Mes:</label>
+                                <input type="month" id="corte-caja-mes-select" class="form-control" style="padding: 0.3rem 0.6rem; font-size: 0.85rem; width: 140px; margin: 0;">
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="abrirCorteCajaMensual()" style="background: var(--color-accent); color: #000; font-weight: bold; font-size: 0.85rem; padding: 0.4rem 0.8rem; border: none; border-radius: 8px;">
+                                <i class="fa-solid fa-file-invoice-dollar"></i> Generar Informe Mensual
+                            </button>
+                        </div>
+
+                        <div style="display: flex; gap: 0.5rem;">
                             <button class="btn btn-outline btn-sm" onclick="abrirVistaPreviaReporte('totales')" style="border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.02);">
-                                <i class="fa-solid fa-eye"></i> Vista Previa
+                                <i class="fa-solid fa-eye"></i> Vista Previa General
                             </button>
                             <button class="btn btn-primary btn-sm" onclick="descargarReportePDF('totales')" style="background: #0ea5e9; color: #000; font-weight: 700;">
-                                <i class="fa-solid fa-share-nodes"></i> Compartir / Descargar PDF
+                                <i class="fa-solid fa-file-arrow-down"></i> PDF General
                             </button>
                         </div>
                     </div>
@@ -1105,7 +1120,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=31"></script>
-    <script src="app.js?v=31"></script>
+    <script src="db.js?v=32"></script>
+    <script src="app.js?v=32"></script>
 </body>
 </html>

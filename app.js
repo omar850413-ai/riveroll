@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '31.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '31.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '32.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '32.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -548,6 +548,10 @@ function switchSedeView(viewId) {
             if (pTotales) pTotales.style.display = 'block';
             renderResumenFinanzas();
             renderEgresosLista();
+            const corteSelect = document.getElementById('corte-caja-mes-select');
+            if (corteSelect && !corteSelect.value) {
+                corteSelect.value = obtenerFechaActualStr().slice(0, 7);
+            }
         } else if (viewId === 'trabajadores') {
             if (btnTrabajadores) btnTrabajadores.className = `sub-tab-btn active ${esSoccer ? 'soccer' : 'gym'}`;
             if (pTrabajadores) pTrabajadores.style.display = 'block';
@@ -1854,6 +1858,16 @@ function descargarReporteDesdeModal() {
     descargarReportePDF(state.tempReporteTipo || 'planilla');
 }
 
+function abrirCorteCajaMensual() {
+    const select = document.getElementById('corte-caja-mes-select');
+    if (!select || !select.value) {
+        alert("Por favor, selecciona un mes para generar el informe.");
+        return;
+    }
+    state.activeCorteCajaMes = select.value;
+    abrirVistaPreviaReporte('corte_mensual');
+}
+
 function abrirVistaPreviaReporte(tipo = 'planilla') {
     state.tempReporteTipo = tipo;
     const Sede = state.sedes.find(s => s.id === state.activeSedeId);
@@ -2010,6 +2024,157 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
             </table>
             <div style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-size: 0.8rem; color: #666; text-align: center;">
                 Reporte de cobros generado el ${formatearFechaSencilla(obtenerFechaActualStr())}. Corporativo Riveroll.
+            </div>
+        `;
+    } else if (tipo === 'corte_mensual') {
+        const mesSeleccionado = state.activeCorteCajaMes; // "2026-07"
+        const [anio, mes] = mesSeleccionado.split('-');
+        const mesesNombres = {
+            '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio',
+            '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
+        };
+        const nombreMesExtendido = `${mesesNombres[mes] || mes} de ${anio}`;
+
+        const alumnosSede = state.alumnos.filter(a => a.sedeId === state.activeSedeId);
+        
+        let ingresosMensualidades = 0;
+        let pagadosFilas = '';
+        let pendientesFilas = '';
+        
+        let countPagados = 0;
+        let countPendientes = 0;
+        
+        alumnosSede.forEach(alu => {
+            const pMes = (alu.pagos.mensualidades && alu.pagos.mensualidades[mesSeleccionado])
+                ? alu.pagos.mensualidades[mesSeleccionado]
+                : { status: 'no-pagado', abono: 0 };
+                
+            if (pMes.status === 'pagado') {
+                ingresosMensualidades += Sede.mensualidad;
+                countPagados++;
+                pagadosFilas += `
+                    <tr>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #166534; font-weight: 500; font-size: 0.8rem; text-transform: uppercase;">${alu.nombre}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #166534; font-size: 0.8rem; text-align: right;">$${Sede.mensualidad}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #166534; font-size: 0.75rem; text-align: center; font-weight: bold; text-transform: uppercase;">PAGADO</td>
+                    </tr>
+                `;
+            } else if (pMes.status === 'abonado') {
+                ingresosMensualidades += (pMes.abono || 0);
+                countPagados++;
+                pagadosFilas += `
+                    <tr>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #b45309; font-weight: 500; font-size: 0.8rem; text-transform: uppercase;">${alu.nombre}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #b45309; font-size: 0.8rem; text-align: right;">$${pMes.abono}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #b45309; font-size: 0.75rem; text-align: center; font-weight: bold; text-transform: uppercase;">ABONO (Resta $${Sede.mensualidad - pMes.abono})</td>
+                    </tr>
+                `;
+                countPendientes++;
+                pendientesFilas += `
+                    <tr>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #b45309; font-weight: 500; font-size: 0.8rem; text-transform: uppercase;">${alu.nombre}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #b45309; font-size: 0.8rem; text-align: right;">$${Sede.mensualidad - pMes.abono}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #b45309; font-size: 0.75rem; text-align: center; font-weight: bold; text-transform: uppercase;">SALDO (ABONÓ $${pMes.abono})</td>
+                    </tr>
+                `;
+            } else {
+                countPendientes++;
+                pendientesFilas += `
+                    <tr>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #991b1b; font-weight: 500; font-size: 0.8rem; text-transform: uppercase;">${alu.nombre}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #991b1b; font-size: 0.8rem; text-align: right;">$${Sede.mensualidad}</td>
+                        <td style="padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; color: #991b1b; font-size: 0.75rem; text-align: center; font-weight: bold; text-transform: uppercase;">ADEUDO</td>
+                    </tr>
+                `;
+            }
+        });
+        
+        const transaccionesExtra = state.transacciones.filter(t => t.sedeId === state.activeSedeId && t.fecha.startsWith(mesSeleccionado));
+        let totalExtraIngresos = 0;
+        let totalEgresosMes = 0;
+        
+        transaccionesExtra.forEach(t => {
+            const monto = parseFloat(t.monto) || 0;
+            if (t.tipo === 'ingreso' || t.tipo === 'ingresos') {
+                if (t.categoria === 'Inscripción' || t.categoria !== 'Mensualidad') {
+                    totalExtraIngresos += monto;
+                }
+            } else if (t.tipo === 'egreso' || t.tipo === 'egresos') {
+                totalEgresosMes += monto;
+            }
+        });
+        
+        const totalIngresosMes = ingresosMensualidades + totalExtraIngresos;
+        const balanceNetoMes = totalIngresosMes - totalEgresosMes;
+        
+        if (pagadosFilas === '') {
+            pagadosFilas = `<tr><td colspan="3" style="text-align: center; padding: 1rem; color: #888; font-size: 0.8rem;">Ningún integrante registrado con pago en este mes.</td></tr>`;
+        }
+        if (pendientesFilas === '') {
+            pendientesFilas = `<tr><td colspan="3" style="text-align: center; padding: 1rem; color: #888; font-size: 0.8rem;">Todos los integrantes están al corriente.</td></tr>`;
+        }
+        
+        bodyHtml = `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 1rem; margin-bottom: 1.5rem; color: #000;">
+                <div>
+                    <h2 style="font-size: 1.8rem; font-weight: 900; margin: 0; color: #000;">${Sede.nombre}</h2>
+                    <p style="margin: 0.25rem 0 0 0; color: #555; font-size: 0.9rem;">Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : 'Gimnasio/Otros'}</p>
+                    <p style="margin: 0.25rem 0 0 0; color: #1e3b8a; font-size: 0.9rem; font-weight: bold; text-transform: uppercase;">CORTE DE CAJA MENSUAL: ${nombreMesExtendido}</p>
+                </div>
+                <img src="${Sede.logo || 'logo.jpg'}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; color: #000;">
+                <div style="background: #f0fdf4; border-left: 5px solid #166534; padding: 0.75rem 1rem; border-radius: 8px;">
+                    <span style="font-size: 0.75rem; font-weight: bold; color: #166534; text-transform: uppercase;">Ingresos del Mes</span>
+                    <h3 style="font-size: 1.5rem; font-weight: 900; margin: 0.25rem 0 0 0; color: #14532d;">$${totalIngresosMes}</h3>
+                </div>
+                <div style="background: #fef2f2; border-left: 5px solid #991b1b; padding: 0.75rem 1rem; border-radius: 8px;">
+                    <span style="font-size: 0.75rem; font-weight: bold; color: #991b1b; text-transform: uppercase;">Egresos del Mes</span>
+                    <h3 style="font-size: 1.5rem; font-weight: 900; margin: 0.25rem 0 0 0; color: #7f1d1d;">$${totalEgresosMes}</h3>
+                </div>
+                <div style="background: #eff6ff; border-left: 5px solid #1d4ed8; padding: 0.75rem 1rem; border-radius: 8px;">
+                    <span style="font-size: 0.75rem; font-weight: bold; color: #1d4ed8; text-transform: uppercase;">Balance Neto</span>
+                    <h3 style="font-size: 1.5rem; font-weight: 900; margin: 0.25rem 0 0 0; color: #1e3a8a;">$${balanceNetoMes}</h3>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; color: #000;">
+                <div>
+                    <h4 style="background: #14532d; color: #fff; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; text-transform: uppercase; margin: 0 0 0.5rem 0; font-weight: bold; text-align: center;"><i class="fa-solid fa-circle-check"></i> Pagados (${countPagados})</h4>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="text-align: left; font-size: 0.75rem; border-bottom: 1px solid #ccc;">
+                                <th style="padding: 0.4rem 0.5rem;">Nombre</th>
+                                <th style="padding: 0.4rem 0.5rem; text-align: right;">Cobrado</th>
+                                <th style="padding: 0.4rem 0.5rem; text-align: center;">Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pagadosFilas}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <h4 style="background: #7f1d1d; color: #fff; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; text-transform: uppercase; margin: 0 0 0.5rem 0; font-weight: bold; text-align: center;"><i class="fa-solid fa-circle-exclamation"></i> Pendientes (${countPendientes})</h4>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="text-align: left; font-size: 0.75rem; border-bottom: 1px solid #ccc;">
+                                <th style="padding: 0.4rem 0.5rem;">Nombre</th>
+                                <th style="padding: 0.4rem 0.5rem; text-align: right;">Pendiente</th>
+                                <th style="padding: 0.4rem 0.5rem; text-align: center;">Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pendientesFilas}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; font-size: 0.75rem; color: #666; text-align: center;">
+                Corte de Caja oficial generado el ${formatearFechaSencilla(obtenerFechaActualStr())}. Corporativo Riveroll.
             </div>
         `;
     } else if (tipo === 'totales') {
