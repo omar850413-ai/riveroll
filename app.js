@@ -5,8 +5,8 @@
  */
 
 // --- AUTO-LIMPIEZA DE CACHÉ PWA PARA CORREGIR ACCESO EN MÓVILES ---
-if (localStorage.getItem('riveroll_pwa_version_clean') !== '32.0') {
-    localStorage.setItem('riveroll_pwa_version_clean', '32.0');
+if (localStorage.getItem('riveroll_pwa_version_clean') !== '33.0') {
+    localStorage.setItem('riveroll_pwa_version_clean', '33.0');
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
             for (let registration of registrations) {
@@ -1873,13 +1873,16 @@ function abrirVistaPreviaReporte(tipo = 'planilla') {
     const Sede = state.sedes.find(s => s.id === state.activeSedeId);
     if (!Sede) return;
     
-    // Rellenar encabezados
-    document.getElementById('reporte-sede-nombre').innerText = Sede.nombre;
-    document.getElementById('reporte-sede-rubro-pago').innerText = `Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : 'Gimnasio/Otros'} | Rango de Pago: ${Sede.fechaCorte || '1 al 5 de cada mes'}`;
-    document.getElementById('reporte-fecha-actual').innerText = formatearFechaSencilla(obtenerFechaActualStr());
+    // Rellenar encabezados de manera segura por si fueron sobreescritos
+    const elNombre = document.getElementById('reporte-sede-nombre');
+    if (elNombre) elNombre.innerText = Sede.nombre;
+    const elRubro = document.getElementById('reporte-sede-rubro-pago');
+    if (elRubro) elRubro.innerText = `Giro: ${Sede.rubro === 'soccer' ? 'Academia de Fútbol' : 'Gimnasio/Otros'} | Rango de Pago: ${Sede.fechaCorte || '1 al 5 de cada mes'}`;
+    const elFecha = document.getElementById('reporte-fecha-actual');
+    if (elFecha) elFecha.innerText = formatearFechaSencilla(obtenerFechaActualStr());
     
     const logoImg = document.getElementById('reporte-sede-logo');
-    logoImg.src = Sede.logo || "logo.jpg";
+    if (logoImg) logoImg.src = Sede.logo || "logo.jpg";
     
     const printContent = document.getElementById('reporte-print-content');
     

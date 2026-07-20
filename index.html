@@ -36,8 +36,8 @@
     
     <!-- Limpiador de Caché PWA Forzado Inline -->
     <script>
-        if (localStorage.getItem('riveroll_pwa_force_clean_v32') !== 'true') {
-            localStorage.setItem('riveroll_pwa_force_clean_v32', 'true');
+        if (localStorage.getItem('riveroll_pwa_force_clean_v33') !== 'true') {
+            localStorage.setItem('riveroll_pwa_force_clean_v33', 'true');
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for (let r of regs) r.unregister();
@@ -1120,7 +1120,7 @@
     </div>
 
     <!-- Scripts de Datos y Lógica -->
-    <script src="db.js?v=32"></script>
-    <script src="app.js?v=32"></script>
+    <script src="db.js?v=33"></script>
+    <script src="app.js?v=33"></script>
 </body>
 </html>
